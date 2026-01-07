@@ -1,65 +1,139 @@
-import Image from "next/image";
+import { FEATURED_SHOPS, LATEST_OFFERS } from './mock-data';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen">
+      {/* Hero Section - Now with a subtle background image and reduced height */}
+      <section className="relative bg-stone-50/50 overflow-hidden border-b border-stone-200">
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0">
+          {/* We use a high-quality market image, make it grayscale (saturate-0), and very faint (opacity-10) */}
+          <img
+            src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=2000"
+            alt="Markt Hintergrund"
+            className="w-full h-full object-cover opacity-[0.10] saturate-0"
+          />
+          {/* A subtle gradient overlay to ensure text readability at the bottom */}
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-stone-50/80"></div>
+        </div>
+        
+        {/* Content Container - Reduced padding from previous version */}
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:py-24 lg:py-28 text-center">
+          <div className="inline-flex items-center rounded-full bg-white/80 backdrop-blur-sm px-4 py-1.5 text-xs sm:text-sm font-semibold text-emerald-800 border border-emerald-100 mb-8 shadow-sm">
+            <span className="mr-2">✨</span> KI-gestützte Angebotserkennung
+          </div>
+          
+          <h1 className="text-4xl font-black tracking-tight text-stone-900 sm:text-6xl lg:text-7xl leading-[1.1] drop-shadow-sm">
+            Ihr lokaler Marktplatz <br className="hidden sm:block" />
+            <span className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-amber-600 bg-clip-text text-transparent">
+              für orientalische Spezialitäten
+            </span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          
+          <p className="mx-auto mt-8 max-w-2xl text-lg sm:text-xl text-stone-700 font-medium leading-relaxed px-4">
+            Händler laden einfach ein Foto hoch – unsere KI erledigt den Rest. 
+            Entdecken Sie täglich neue Angebote direkt in Ihrer Nachbarschaft.
+          </p>
+          
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 px-10 sm:px-0">
+            <button className="w-full sm:w-auto rounded-xl bg-emerald-800 px-10 py-4 text-lg font-bold text-white shadow-xl shadow-emerald-900/20 hover:bg-emerald-900 hover:-translate-y-0.5 transition-all cursor-pointer">
+              Jetzt registrieren →
+            </button>
+            <button className="w-full sm:w-auto rounded-xl border-2 border-stone-200 bg-white/80 backdrop-blur-sm px-10 py-4 text-lg font-bold text-stone-900 hover:bg-white hover:border-stone-300 transition-all cursor-pointer shadow-sm">
+              Märkte entdecken
+            </button>
+          </div>
+          
+          {/* Trust indicator */}
+          <p className="mt-8 text-sm text-stone-500 font-semibold">
+            Schon über 50 Märkte in Frankfurt und Berlin dabei
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Featured Shops Section */}
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mb-10 text-center sm:text-left">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-emerald-900 tracking-tight">Empfohlene Shops</h2>
+          <p className="text-stone-500 mt-3 text-lg">Die beliebtesten Märkte in Ihrer Region.</p>
         </div>
-      </main>
-    </div>
+        
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURED_SHOPS.map((shop) => (
+            <div key={shop.id} className="group rounded-3xl border border-stone-100 bg-white p-3 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer">
+              <div className="h-56 sm:h-64 rounded-2xl bg-stone-100 mb-5 overflow-hidden relative">
+                <img src={shop.image} alt={shop.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-emerald-900 shadow-sm">
+                  Premium Partner
+                </div>
+              </div>
+              <div className="px-4 pb-4">
+                <h3 className="font-bold text-xl text-stone-900">{shop.name}</h3>
+                <p className="text-stone-500 font-medium flex items-center gap-1 mt-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  {shop.branch}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Latest Offers Section */}
+      <section className="bg-stone-50 py-20 border-t border-stone-200">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+            <div className="text-center md:text-left">
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-emerald-900 tracking-tight">Neueste Angebote</h2>
+              <p className="text-stone-500 mt-2">Frisch von der KI erkannt und direkt für Sie bereit.</p>
+            </div>
+            <div className="flex justify-center">
+              <select className="bg-white border border-stone-200 rounded-xl px-4 py-3 text-sm font-bold text-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm">
+                <option>🗺️ Alle Städte</option>
+                <option>📍 Frankfurt</option>
+                <option>📍 Berlin</option>
+                <option>📍 München</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {LATEST_OFFERS.map((offer) => (
+              <div key={offer.id} className="rounded-3xl border border-stone-200 bg-white overflow-hidden shadow-sm cursor-pointer hover:border-emerald-300 hover:shadow-md transition-all duration-300 group">
+                <div className="aspect-square overflow-hidden relative">
+                  <img src={offer.image} alt={offer.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-emerald-800 text-white text-lg font-black px-4 py-2 rounded-xl shadow-lg">
+                      {offer.price}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="font-bold text-xl text-stone-900 mb-2">{offer.name}</h3>
+                  <p className="text-sm text-stone-500 line-clamp-2 mb-6 leading-relaxed font-medium">
+                    Dieses Angebot wurde automatisch von unserem System erfasst und verifiziert.
+                  </p>
+                  <div className="flex items-center justify-between border-t border-stone-100 pt-4">
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m-1 4h1" /></svg>
+                      <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">{offer.market}</span>
+                    </div>
+                    <span className="text-emerald-700 text-sm font-bold group-hover:translate-x-1 transition-transform">Details →</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-16 flex items-center justify-center gap-3">
+            <button className="h-12 w-12 flex items-center justify-center rounded-xl border border-stone-200 bg-white cursor-pointer hover:bg-stone-50 transition-colors">«</button>
+            <button className="h-12 w-12 flex items-center justify-center rounded-xl bg-emerald-800 text-white font-bold cursor-pointer shadow-lg shadow-emerald-900/20">1</button>
+            <button className="h-12 w-12 flex items-center justify-center rounded-xl border border-stone-200 bg-white cursor-pointer hover:bg-stone-50 transition-colors">2</button>
+            <button className="h-12 w-12 flex items-center justify-center rounded-lg border border-stone-200 bg-white cursor-pointer hover:bg-stone-50 transition-colors">»</button>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
