@@ -24,21 +24,28 @@ export default async function AdminDashboardPage({ params, searchParams }: PageP
         redirect('/admin/login');
     }
 
-    // Verify user is admin from profiles table and fetch their role
+    // Verify user role from profiles table
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('is_admin, role')
+        .select('role')
         .eq('id', user.id)
         .single();
 
-    if (profileError || !profile?.is_admin) {
+    if (profileError || !profile) {
+        // Profile not found, sign out and redirect
+        await supabase.auth.signOut();
+        redirect('/admin/login');
+    }
+
+    // Check if user has admin or superadmin role
+    if (profile.role !== 'admin' && profile.role !== 'superadmin') {
         // Not an admin, sign out and redirect
         await supabase.auth.signOut();
         redirect('/admin/login');
     }
 
-    // Determine user role - default to 'admin' if role is not set but is_admin is true
-    const userRole: UserRole = (profile.role as UserRole) || 'admin';
+    // Set user role
+    const userRole: UserRole = profile.role as UserRole;
 
     // Fetch initial page of markets (15 items) with premium priority
     const { data: markets, error, count } = await supabase
@@ -54,15 +61,27 @@ export default async function AdminDashboardPage({ params, searchParams }: PageP
 
     // Fetch team members (admins and superadmins) only if user is superadmin
     let teamMembers: Array<{ id: string; email: string; role: UserRole; created_at: string }> = [];
+    let regularUsers: Array<{ id: string; email: string; role: UserRole; created_at: string }> = [];
+    
     if (userRole === 'superadmin') {
         const { data: team } = await supabase
             .from('profiles')
             .select('id, email, role, created_at')
-            .eq('is_admin', true)
+            .in('role', ['admin', 'superadmin'])
             .order('role', { ascending: false })
             .order('created_at', { ascending: false });
 
         teamMembers = (team || []) as Array<{ id: string; email: string; role: UserRole; created_at: string }>;
+        
+        // Fetch initial page of regular users
+        const { data: users } = await supabase
+            .from('profiles')
+            .select('id, email, role, created_at')
+            .eq('role', 'user')
+            .order('created_at', { ascending: false })
+            .range(0, 19); // First 20 users
+            
+        regularUsers = (users || []) as Array<{ id: string; email: string; role: UserRole; created_at: string }>;
     }
 
     return (
@@ -73,6 +92,7 @@ export default async function AdminDashboardPage({ params, searchParams }: PageP
             userRole={userRole}
             userId={user.id}
             initialTeamMembers={teamMembers}
+            initialUsers={regularUsers}
         />
     );
 }

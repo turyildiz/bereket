@@ -29,22 +29,23 @@ export default function AdminLoginPage() {
             return;
         }
 
-        // Step 2: Check if user is admin in profiles table
+        // Step 2: Check if user has admin role in profiles table
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('is_admin')
+            .select('role')
             .eq('id', authData.user.id)
             .single();
 
         if (profileError) {
             // If profile doesn't exist or error, sign out and show error
             await supabase.auth.signOut();
-            setError('Profil konnte nicht geladen werden. Bitte kontaktieren Sie den Administrator.');
+            setError('Benutzerprofil konnte nicht gefunden werden. Bitte kontaktieren Sie den Administrator.');
             setLoading(false);
             return;
         }
 
-        if (!profile.is_admin) {
+        // Check if user has admin or superadmin role
+        if (!profile || (profile.role !== 'admin' && profile.role !== 'superadmin')) {
             // User is not an admin, sign out and show error
             await supabase.auth.signOut();
             setError('Sie haben keine Administratorberechtigung. Zugang verweigert.');
