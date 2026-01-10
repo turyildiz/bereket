@@ -326,104 +326,130 @@ export default function TeamManagement({
         <>
             {/* User Detail Modal */}
             {showUserModal && selectedUser && (
-                <div className="fixed inset-0 z-[90] flex items-center justify-center p-4" style={{ background: 'rgba(44, 40, 35, 0.6)' }}>
-                    <div className="glass-card w-full max-w-md p-6 sm:p-8 animate-scale-in" onClick={handleModalContentClick}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>Benutzerdetails</h3>
-                            <button onClick={handleCloseUserModal} className="p-2 rounded-xl hover:opacity-70 transition-opacity cursor-pointer" style={{ background: 'var(--sand)' }}>
+                <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(44, 40, 35, 0.6)' }}>
+                    <div className="glass-card w-full max-w-md p-0 animate-scale-in overflow-hidden shadow-2xl" onClick={handleModalContentClick} style={{ borderRadius: '2rem', border: '1px solid rgba(255,255,255,0.5)' }}>
+
+                        {/* Header Banner */}
+                        <div className="relative h-32 w-full" style={{ background: 'var(--gradient-earth)' }}>
+                            <div className="absolute inset-0 opacity-20 grain-texture"></div>
+                            <button onClick={handleCloseUserModal} className="absolute top-4 right-4 p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer z-10 backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.3)' }}>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--charcoal)' }}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
 
-                        <div className="space-y-4 mb-6">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-2xl" style={{ background: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
-                                    {selectedUser.email.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style={{ background: 'var(--sand)', color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)', letterSpacing: '0.05em' }}>Benutzer</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>E-Mail</label>
-                                <p className="text-base" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>{selectedUser.email}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>Benutzer-ID</label>
-                                <p className="text-sm font-mono" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>{selectedUser.id}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>Registriert am</label>
-                                <p className="text-base" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>{new Date(selectedUser.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                            </div>
-                        </div>
+                        {/* Profile Content */}
+                        <div className="px-8 pb-8 -mt-16 flex flex-col items-center relative z-10">
 
-                        <div className="space-y-3">
-                            <button
-                                onClick={handlePromoteToAdminFromModal}
-                                disabled={promotingToAdmin}
-                                className="w-full btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
-                                style={{ fontFamily: 'var(--font-outfit)' }}
-                            >
-                                {promotingToAdmin ? (
-                                    <>
-                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                        </svg>
-                                        <span>Wird hochgestuft...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                        </svg>
-                                        <span>Zu Admin hochstufen</span>
-                                    </>
-                                )}
-                            </button>
+                            {/* Avatar */}
+                            <div className="w-32 h-32 rounded-3xl flex items-center justify-center text-white font-bold text-5xl shadow-xl mb-4 border-4 border-white transform hover:scale-105 transition-transform duration-500"
+                                style={{ background: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
+                                {selectedUser.email.charAt(0).toUpperCase()}
+                            </div>
 
-                            {/* Delete Button - Hidden if user is the current superadmin */}
-                            {selectedUser.id !== userId && (
+                            {/* Email & Role */}
+                            <h3 className="text-xl font-bold text-center mb-2 break-all" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                {selectedUser.email}
+                            </h3>
+                            <span className="px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-8 shadow-sm"
+                                style={{ background: 'var(--sand)', color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                Benutzer
+                            </span>
+
+                            {/* Details Box */}
+                            <div className="w-full rounded-2xl p-6 mb-8 space-y-4 shadow-inner" style={{ background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                                <div className="flex justify-between items-center border-b border-black/5 pb-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-[var(--warm-gray)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="text-sm font-medium" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>Registriert am</span>
+                                    </div>
+                                    <span className="text-sm font-bold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>
+                                        {new Date(selectedUser.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-[var(--warm-gray)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                        </svg>
+                                        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>User ID</span>
+                                    </div>
+                                    <code className="text-xs p-3 rounded-xl block w-full overflow-hidden text-ellipsis font-mono select-all transition-colors hover:bg-white/80"
+                                        style={{ color: 'var(--charcoal)', background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                        {selectedUser.id}
+                                    </code>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="w-full space-y-3">
                                 <button
-                                    data-delete-button
-                                    onClick={handleDeleteClick}
-                                    disabled={deletingUser}
-                                    className="w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                                    style={{
-                                        background: deleteConfirmActive ? 'var(--terracotta)' : 'transparent',
-                                        color: deleteConfirmActive ? 'white' : 'var(--terracotta)',
-                                        border: deleteConfirmActive ? 'none' : '2px solid var(--terracotta)',
-                                        fontFamily: 'var(--font-outfit)'
-                                    }}
+                                    onClick={handlePromoteToAdminFromModal}
+                                    disabled={promotingToAdmin}
+                                    className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-3 font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                                    style={{ fontFamily: 'var(--font-outfit)' }}
                                 >
-                                    {deletingUser ? (
+                                    {promotingToAdmin ? (
                                         <>
-                                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                            <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                             </svg>
-                                            <span>Wird gelöscht...</span>
-                                        </>
-                                    ) : deleteConfirmActive ? (
-                                        <>
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                            </svg>
-                                            <span>Sicher? Endgültig löschen</span>
+                                            <span>Wird hochgestuft...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
-                                            <span>Benutzer löschen</span>
+                                            <span>Zum Admin machen</span>
                                         </>
                                     )}
                                 </button>
-                            )}
+
+                                {/* Delete Button - Hidden if user is the current superadmin */}
+                                {selectedUser.id !== userId && (
+                                    <button
+                                        data-delete-button
+                                        onClick={handleDeleteClick}
+                                        disabled={deletingUser}
+                                        className="w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 cursor-pointer hover:bg-[rgba(216,99,78,0.08)] active:scale-[0.98]"
+                                        style={{
+                                            background: deleteConfirmActive ? 'var(--terracotta)' : 'transparent',
+                                            color: deleteConfirmActive ? 'white' : 'var(--terracotta)',
+                                            border: deleteConfirmActive ? 'none' : '2px solid rgba(216, 99, 78, 0.2)',
+                                            fontFamily: 'var(--font-outfit)'
+                                        }}
+                                    >
+                                        {deletingUser ? (
+                                            <>
+                                                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                </svg>
+                                                <span>Wird gelöscht...</span>
+                                            </>
+                                        ) : deleteConfirmActive ? (
+                                            <>
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <span>Ja, endgültig löschen</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                <span>Benutzer löschen</span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

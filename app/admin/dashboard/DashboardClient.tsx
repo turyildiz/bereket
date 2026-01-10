@@ -92,40 +92,42 @@ export default function DashboardClient({
 
             {/* Password Change Modal */}
             {showPasswordModal && (
-                <div className="fixed inset-0 z-[90] flex items-center justify-center p-4" style={{ background: 'rgba(44, 40, 35, 0.6)' }}>
-                    <div className="glass-card w-full max-w-md p-6 sm:p-8 animate-scale-in">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 rounded-xl" style={{ background: 'rgba(230, 168, 69, 0.15)' }}>
+                <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: 'rgba(44, 40, 35, 0.6)' }}>
+                    <div className="glass-card w-full max-w-md p-8 animate-scale-in" style={{ borderRadius: '2rem', border: '1px solid rgba(255,255,255,0.5)' }}>
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3.5 rounded-2xl shadow-sm" style={{ background: 'rgba(230, 168, 69, 0.15)' }}>
                                     <svg className="w-6 h-6" fill="none" stroke="var(--saffron)" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                <h3 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
                                     Passwort ändern
                                 </h3>
                             </div>
-                            <button onClick={() => { setShowPasswordModal(false); setNewPassword(''); setConfirmPassword(''); }} className="p-2 rounded-xl hover:opacity-70 transition-opacity cursor-pointer" style={{ background: 'var(--sand)' }}>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--charcoal)' }}>
+                            <button onClick={() => { setShowPasswordModal(false); setNewPassword(''); setConfirmPassword(''); }} className="p-2.5 rounded-full hover:bg-black/5 transition-colors cursor-pointer text-[var(--warm-gray)] hover:text-[var(--charcoal)]">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
 
-                        <form onSubmit={handlePasswordUpdate} className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Neues Passwort *</label>
-                                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Mindestens 8 Zeichen" required className="w-full px-4 py-3 rounded-xl transition-all" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                        <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                            <div className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-bold mb-2 ml-1" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Neues Passwort</label>
+                                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Mindestens 8 Zeichen" required className="w-full px-5 py-4 rounded-xl transition-all focus:ring-4 focus:ring-[var(--saffron-glow)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-2 ml-1" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Passwort bestätigen</label>
+                                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Passwort erneut eingeben" required className="w-full px-5 py-4 rounded-xl transition-all focus:ring-4 focus:ring-[var(--saffron-glow)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Passwort bestätigen *</label>
-                                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Passwort erneut eingeben" required className="w-full px-4 py-3 rounded-xl transition-all" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => { setShowPasswordModal(false); setNewPassword(''); setConfirmPassword(''); }} className="flex-1 py-3 rounded-xl font-semibold transition-all hover:opacity-70 cursor-pointer" style={{ background: 'var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Abbrechen</button>
-                                <button type="submit" disabled={updatingPassword} className="flex-1 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed" style={{ fontFamily: 'var(--font-outfit)' }}>
-                                    {updatingPassword ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg><span>Wird aktualisiert...</span></> : <span>Passwort aktualisieren</span>}
+                            <div className="flex gap-4 pt-4">
+                                <button type="button" onClick={() => { setShowPasswordModal(false); setNewPassword(''); setConfirmPassword(''); }} className="flex-1 py-4 rounded-xl font-bold transition-all hover:bg-black/5 cursor-pointer" style={{ background: 'transparent', color: 'var(--warm-gray)', border: '2px solid var(--sand)', fontFamily: 'var(--font-outfit)' }}>Abbrechen</button>
+                                <button type="submit" disabled={updatingPassword} className="flex-[2] btn-primary py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]" style={{ fontFamily: 'var(--font-outfit)' }}>
+                                    {updatingPassword ? <><svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg><span>Wird aktualisiert...</span></> : <span>Passwort aktualisieren</span>}
                                 </button>
                             </div>
                         </form>
