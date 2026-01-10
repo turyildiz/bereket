@@ -2,6 +2,9 @@ import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardClient from './DashboardClient';
 
+// Role type definition
+export type UserRole = 'superadmin' | 'admin' | 'user';
+
 interface PageProps {
     params: Promise<Record<string, string>>;
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -21,10 +24,10 @@ export default async function AdminDashboardPage({ params, searchParams }: PageP
         redirect('/admin/login');
     }
 
-    // Verify user is admin from profiles table
+    // Verify user is admin from profiles table and fetch their role
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, role')
         .eq('id', user.id)
         .single();
 
@@ -34,15 +37,42 @@ export default async function AdminDashboardPage({ params, searchParams }: PageP
         redirect('/admin/login');
     }
 
-    // Fetch all markets from the 'markets' table
-    const { data: markets, error } = await supabase
+    // Determine user role - default to 'admin' if role is not set but is_admin is true
+    const userRole: UserRole = (profile.role as UserRole) || 'admin';
+
+    // Fetch initial page of markets (15 items) with premium priority
+    const { data: markets, error, count } = await supabase
         .from('markets')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('is_premium', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(0, 14); // First 15 items (0-14)
 
     if (error) {
         console.error('Error fetching markets:', error);
     }
 
-    return <DashboardClient initialMarkets={markets || []} userEmail={user.email || ''} />;
+    // Fetch team members (admins and superadmins) only if user is superadmin
+    let teamMembers: Array<{ id: string; email: string; role: UserRole; created_at: string }> = [];
+    if (userRole === 'superadmin') {
+        const { data: team } = await supabase
+            .from('profiles')
+            .select('id, email, role, created_at')
+            .eq('is_admin', true)
+            .order('role', { ascending: false })
+            .order('created_at', { ascending: false });
+
+        teamMembers = (team || []) as Array<{ id: string; email: string; role: UserRole; created_at: string }>;
+    }
+
+    return (
+        <DashboardClient
+            initialMarkets={markets || []}
+            userEmail={user.email || ''}
+            initialTotalCount={count || 0}
+            userRole={userRole}
+            userId={user.id}
+            initialTeamMembers={teamMembers}
+        />
+    );
 }

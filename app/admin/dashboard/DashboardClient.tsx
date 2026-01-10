@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+
+// Role type definition
+type UserRole = 'superadmin' | 'admin' | 'user';
 
 interface Market {
     id: string;
@@ -23,16 +26,55 @@ interface Market {
     created_at: string;
 }
 
+interface TeamMember {
+    id: string;
+    email: string;
+    role: UserRole;
+    created_at: string;
+}
+
 interface DashboardClientProps {
     initialMarkets: Market[];
     userEmail: string;
+    initialTotalCount: number;
+    userRole: UserRole;
+    userId: string;
+    initialTeamMembers: TeamMember[];
 }
 
-export default function DashboardClient({ initialMarkets, userEmail }: DashboardClientProps) {
+const ITEMS_PER_PAGE = 15;
+
+// Tab type for navigation
+type DashboardTab = 'markets' | 'team';
+
+export default function DashboardClient({
+    initialMarkets,
+    userEmail,
+    initialTotalCount,
+    userRole,
+    userId,
+    initialTeamMembers
+}: DashboardClientProps) {
     const [markets, setMarkets] = useState<Market[]>(initialMarkets);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [loading, setLoading] = useState(false);
     const [seeding, setSeeding] = useState(false);
+
+    // Tab navigation state
+    const [activeTab, setActiveTab] = useState<DashboardTab>('markets');
+
+    // Team management state (only for superadmin)
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeamMembers);
+    const [promoteEmail, setPromoteEmail] = useState('');
+    const [promotingUser, setPromotingUser] = useState(false);
+    const [demoteConfirm, setDemoteConfirm] = useState<string | null>(null);
+
+    // Search and Pagination state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(initialTotalCount);
+    const [searchLoading, setSearchLoading] = useState(false);
 
     // Edit mode state
     const [editingMarket, setEditingMarket] = useState<Market | null>(null);
@@ -77,6 +119,217 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
+    };
+
+    // Debounce search query
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+            setCurrentPage(1); // Reset to first page on new search
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch markets with search and pagination
+    const fetchMarkets = useCallback(async (query: string, page: number) => {
+        setSearchLoading(true);
+
+        const start = (page - 1) * ITEMS_PER_PAGE;
+        const end = start + ITEMS_PER_PAGE - 1;
+
+        try {
+            let dataQuery = supabase
+                .from('markets')
+                .select('*', { count: 'exact' });
+
+            // Apply search filter using ilike for fuzzy matching
+            // Note: For pg_trgm, you would need to set up a database function
+            // Here we use ilike which works well for most cases
+            if (query.trim()) {
+                dataQuery = dataQuery.or(`name.ilike.%${query}%,city.ilike.%${query}%`);
+            }
+
+            // Order by premium first, then by created_at
+            dataQuery = dataQuery
+                .order('is_premium', { ascending: false })
+                .order('created_at', { ascending: false })
+                .range(start, end);
+
+            const { data, error, count } = await dataQuery;
+
+            if (error) {
+                console.error('Error fetching markets:', error);
+                showToast('Fehler beim Laden der Märkte: ' + error.message, 'error');
+            } else {
+                setMarkets(data || []);
+                setTotalCount(count || 0);
+            }
+        } catch (err) {
+            console.error('Unexpected error:', err);
+        } finally {
+            setSearchLoading(false);
+        }
+    }, [supabase]);
+
+    // Track if initial load has been done
+    const isInitialMount = useRef(true);
+
+    // Fetch markets when debounced query or page changes
+    useEffect(() => {
+        // Skip the first render since we have initial data from server
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+        fetchMarkets(debouncedQuery, currentPage);
+    }, [debouncedQuery, currentPage, fetchMarkets]);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+    // Pagination handlers
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(prev => prev + 1);
+        }
+    };
+
+    const goToPreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
+        }
+    };
+
+    // Clear search
+    const clearSearch = () => {
+        setSearchQuery('');
+        setDebouncedQuery('');
+        setCurrentPage(1);
+    };
+
+    // Team Management Functions (Superadmin only)
+    const handlePromoteToAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!promoteEmail.trim()) {
+            showToast('Bitte geben Sie eine E-Mail-Adresse ein.', 'error');
+            return;
+        }
+
+        setPromotingUser(true);
+
+        // First, find the user by email
+        const { data: existingUser, error: findError } = await supabase
+            .from('profiles')
+            .select('id, email, role, is_admin')
+            .eq('email', promoteEmail.trim().toLowerCase())
+            .single();
+
+        if (findError || !existingUser) {
+            showToast('Benutzer mit dieser E-Mail nicht gefunden.', 'error');
+            setPromotingUser(false);
+            return;
+        }
+
+        if (existingUser.is_admin && existingUser.role === 'admin') {
+            showToast('Dieser Benutzer ist bereits ein Admin.', 'error');
+            setPromotingUser(false);
+            return;
+        }
+
+        if (existingUser.role === 'superadmin') {
+            showToast('Dieser Benutzer ist bereits ein Superadmin.', 'error');
+            setPromotingUser(false);
+            return;
+        }
+
+        // Update the user to admin role
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ is_admin: true, role: 'admin' })
+            .eq('id', existingUser.id);
+
+        if (updateError) {
+            showToast('Fehler beim Hochstufen: ' + updateError.message, 'error');
+            setPromotingUser(false);
+            return;
+        }
+
+        // Add to local team members list
+        const newMember: TeamMember = {
+            id: existingUser.id,
+            email: existingUser.email,
+            role: 'admin',
+            created_at: new Date().toISOString()
+        };
+        setTeamMembers(prev => [...prev, newMember]);
+        setPromoteEmail('');
+        showToast('✅ Benutzer erfolgreich zum Admin hochgestuft!', 'success');
+        setPromotingUser(false);
+    };
+
+    const handleDemoteAdmin = async (memberId: string) => {
+        if (memberId === userId) {
+            showToast('Sie können sich nicht selbst herabstufen.', 'error');
+            setDemoteConfirm(null);
+            return;
+        }
+
+        const member = teamMembers.find(m => m.id === memberId);
+        if (member?.role === 'superadmin') {
+            showToast('Superadmins können nicht herabgestuft werden.', 'error');
+            setDemoteConfirm(null);
+            return;
+        }
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ is_admin: false, role: 'user' })
+            .eq('id', memberId);
+
+        if (error) {
+            showToast('Fehler beim Herabstufen: ' + error.message, 'error');
+        } else {
+            setTeamMembers(prev => prev.filter(m => m.id !== memberId));
+            showToast('✅ Admin-Rechte erfolgreich entzogen.', 'success');
+        }
+        setDemoteConfirm(null);
+    };
+
+    const handlePromoteToSuperadmin = async (memberId: string) => {
+        if (memberId === userId) {
+            showToast('Sie sind bereits Superadmin.', 'error');
+            return;
+        }
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ role: 'superadmin' })
+            .eq('id', memberId);
+
+        if (error) {
+            showToast('Fehler beim Hochstufen: ' + error.message, 'error');
+        } else {
+            setTeamMembers(prev =>
+                prev.map(m => m.id === memberId ? { ...m, role: 'superadmin' as UserRole } : m)
+            );
+            showToast('✅ Benutzer zum Superadmin hochgestuft!', 'success');
+        }
+    };
+
+    // Refresh team members list
+    const refreshTeamMembers = async () => {
+        const { data: team } = await supabase
+            .from('profiles')
+            .select('id, email, role, created_at')
+            .eq('is_admin', true)
+            .order('role', { ascending: false })
+            .order('created_at', { ascending: false });
+
+        if (team) {
+            setTeamMembers(team as TeamMember[]);
+        }
     };
 
     const handleSignOut = async () => {
@@ -228,7 +481,7 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
         // Check if editing or creating
         if (editingMarket) {
             // UPDATE existing market
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('markets')
                 .update(marketData)
                 .eq('id', editingMarket.id)
@@ -237,14 +490,15 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
 
             if (error) {
                 showToast('Fehler beim Speichern: ' + error.message, 'error');
-            } else if (data) {
-                setMarkets(prev => prev.map(m => m.id === editingMarket.id ? data : m));
+            } else {
+                // Refresh the markets list
+                await fetchMarkets(debouncedQuery, currentPage);
                 resetForm();
                 showToast('✅ Änderungen erfolgreich gespeichert!', 'success');
             }
         } else {
             // INSERT new market
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('markets')
                 .insert(marketData)
                 .select()
@@ -252,8 +506,10 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
 
             if (error) {
                 showToast('Fehler beim Erstellen: ' + error.message, 'error');
-            } else if (data) {
-                setMarkets(prev => [data, ...prev]);
+            } else {
+                // Refresh the markets list and go to first page
+                setCurrentPage(1);
+                await fetchMarkets(debouncedQuery, 1);
                 resetForm();
                 showToast('✅ Markt erfolgreich erstellt!', 'success');
             }
@@ -316,7 +572,8 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
         if (error) {
             showToast('Fehler beim Löschen: ' + error.message, 'error');
         } else {
-            setMarkets(prev => prev.filter(m => m.id !== id));
+            // Refresh the markets list
+            await fetchMarkets(debouncedQuery, currentPage);
             showToast('✅ Markt erfolgreich gelöscht!', 'success');
         }
         setDeleteConfirm(null);
@@ -489,7 +746,8 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
         }
 
         // Refresh markets list
-        setMarkets(prev => [...insertedMarkets, ...prev]);
+        setCurrentPage(1);
+        await fetchMarkets(debouncedQuery, 1);
         setSeeding(false);
     };
 
@@ -602,7 +860,18 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
                         {/* User Menu */}
                         <div className="flex items-center gap-4">
                             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'var(--sand)' }}>
-                                <div className="w-2 h-2 rounded-full" style={{ background: 'var(--cardamom)' }} />
+                                {/* Role Badge */}
+                                <span
+                                    className="px-2 py-0.5 rounded-full text-xs font-bold uppercase"
+                                    style={{
+                                        background: userRole === 'superadmin' ? 'var(--saffron)' : 'var(--warm-gray)',
+                                        color: 'white',
+                                        fontFamily: 'var(--font-outfit)',
+                                        letterSpacing: '0.05em'
+                                    }}
+                                >
+                                    {userRole === 'superadmin' ? 'Superadmin' : 'Admin'}
+                                </span>
                                 <span className="text-sm font-medium" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>{userEmail}</span>
                             </div>
                             <button
@@ -620,19 +889,61 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
                 </div>
             </header>
 
+            {/* Tab Navigation - Only show if superadmin */}
+            {userRole === 'superadmin' && (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setActiveTab('markets')}
+                            className="px-5 py-2.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-2"
+                            style={{
+                                background: activeTab === 'markets' ? 'var(--gradient-warm)' : 'var(--glass-bg)',
+                                color: activeTab === 'markets' ? 'white' : 'var(--charcoal)',
+                                fontFamily: 'var(--font-outfit)',
+                                border: activeTab === 'markets' ? 'none' : '1px solid var(--glass-border)'
+                            }}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            Market Manager
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('team')}
+                            className="px-5 py-2.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-2"
+                            style={{
+                                background: activeTab === 'team' ? 'var(--gradient-warm)' : 'var(--glass-bg)',
+                                color: activeTab === 'team' ? 'white' : 'var(--charcoal)',
+                                fontFamily: 'var(--font-outfit)',
+                                border: activeTab === 'team' ? 'none' : '1px solid var(--glass-border)'
+                            }}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            Team Verwaltung
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Page Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-                    <div>
-                        <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
-                            Market Manager
-                        </h2>
-                        <p style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
-                            {markets.length} Märkte registriert
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
+                {/* Market Manager Tab Content */}
+                {activeTab === 'markets' && (
+                    <>
+                        {/* Page Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                    Market Manager
+                                </h2>
+                                <p style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                    {totalCount} {totalCount === 1 ? 'Markt' : 'Märkte'} registriert
+                                    {debouncedQuery && ` • Suche: "${debouncedQuery}"`}
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
                         {/* Seed Sample Data Button */}
                         <button
                             onClick={() => setShowSeedConfirm(true)}
@@ -669,6 +980,71 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
                             </svg>
                             <span>Neuen Markt erstellen</span>
                         </button>
+                    </div>
+                </div>
+
+                {/* Search Bar - Saffron-bordered */}
+                <div className="mb-8">
+                    <div
+                        className="relative glass-card overflow-hidden"
+                        style={{
+                            border: '2px solid var(--saffron)',
+                            boxShadow: '0 0 20px rgba(230, 168, 69, 0.15)'
+                        }}
+                    >
+                        <div className="flex items-center">
+                            {/* Search Icon */}
+                            <div className="pl-5 pr-3">
+                                {searchLoading ? (
+                                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--saffron)' }}>
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--saffron)' }}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                )}
+                            </div>
+
+                            {/* Search Input */}
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Nach Marktname oder Stadt suchen..."
+                                className="flex-1 py-4 pr-4 bg-transparent outline-none"
+                                style={{
+                                    color: 'var(--charcoal)',
+                                    fontFamily: 'var(--font-outfit)',
+                                    fontSize: '16px'
+                                }}
+                            />
+
+                            {/* Clear Button */}
+                            {searchQuery && (
+                                <button
+                                    onClick={clearSearch}
+                                    className="px-4 py-2 mr-2 rounded-xl text-sm font-semibold transition-all hover:opacity-80 cursor-pointer flex items-center gap-2"
+                                    style={{
+                                        background: 'rgba(230, 168, 69, 0.1)',
+                                        color: 'var(--saffron-dark)',
+                                        fontFamily: 'var(--font-outfit)'
+                                    }}
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Löschen
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Saffron accent line at bottom */}
+                        <div
+                            className="absolute bottom-0 left-0 right-0 h-0.5"
+                            style={{ background: 'var(--gradient-warm)' }}
+                        />
                     </div>
                 </div>
 
@@ -1152,31 +1528,66 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
                 {/* Markets Grid - Glass Card Style */}
                 {markets.length === 0 ? (
                     <div className="glass-card p-12 text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'var(--sand)' }}>
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--warm-gray)' }}>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        </div>
-                        <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
-                            Keine Märkte vorhanden
-                        </h3>
-                        <p className="mb-6" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
-                            Erstellen Sie Ihren ersten Markt, um loszulegen.
-                        </p>
-                        <button
-                            onClick={() => setShowCreateForm(true)}
-                            className="btn-primary px-6 py-3 inline-flex items-center gap-2"
-                            style={{ fontFamily: 'var(--font-outfit)' }}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span>Ersten Markt erstellen</span>
-                        </button>
+                        {debouncedQuery ? (
+                            // No search results state
+                            <>
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(230, 168, 69, 0.1)' }}>
+                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--saffron)' }}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                    Keine Märkte gefunden
+                                </h3>
+                                <p className="mb-6" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                    Keine Ergebnisse für &ldquo;{debouncedQuery}&rdquo;. Versuchen Sie einen anderen Suchbegriff.
+                                </p>
+                                <button
+                                    onClick={clearSearch}
+                                    className="px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-80 cursor-pointer inline-flex items-center gap-2"
+                                    style={{
+                                        background: 'rgba(230, 168, 69, 0.1)',
+                                        color: 'var(--saffron-dark)',
+                                        fontFamily: 'var(--font-outfit)'
+                                    }}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    <span>Suche zurücksetzen</span>
+                                </button>
+                            </>
+                        ) : (
+                            // No markets at all state
+                            <>
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'var(--sand)' }}>
+                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--warm-gray)' }}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                    Keine Märkte vorhanden
+                                </h3>
+                                <p className="mb-6" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                    Erstellen Sie Ihren ersten Markt, um loszulegen.
+                                </p>
+                                <button
+                                    onClick={() => setShowCreateForm(true)}
+                                    className="btn-primary px-6 py-3 inline-flex items-center gap-2 cursor-pointer"
+                                    style={{ fontFamily: 'var(--font-outfit)' }}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Ersten Markt erstellen</span>
+                                </button>
+                            </>
+                        )}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {markets.map((market) => (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {markets.map((market) => (
                             <div key={market.id} className="glass-card hover-lift overflow-hidden">
                                 {/* Card Header */}
                                 <div className="h-24 relative" style={{ background: 'var(--gradient-warm)' }}>
@@ -1339,7 +1750,316 @@ export default function DashboardClient({ initialMarkets, userEmail }: Dashboard
                                 </div>
                             </div>
                         ))}
-                    </div>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                {/* Page Info */}
+                                <div
+                                    className="text-sm"
+                                    style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}
+                                >
+                                    Seite {currentPage} von {totalPages}
+                                    <span className="mx-2">•</span>
+                                    Zeige {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} von {totalCount}
+                                </div>
+
+                                {/* Navigation Buttons */}
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={goToPreviousPage}
+                                        disabled={currentPage === 1}
+                                        className="px-5 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                                        style={{
+                                            background: currentPage === 1 ? 'var(--sand)' : 'white',
+                                            color: 'var(--charcoal)',
+                                            border: '2px solid var(--sand)',
+                                            fontFamily: 'var(--font-outfit)'
+                                        }}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        Zurück
+                                    </button>
+
+                                    {/* Page Numbers (show up to 5 pages) */}
+                                    <div className="hidden sm:flex items-center gap-1">
+                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                            let pageNum: number;
+                                            if (totalPages <= 5) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage <= 3) {
+                                                pageNum = i + 1;
+                                            } else if (currentPage >= totalPages - 2) {
+                                                pageNum = totalPages - 4 + i;
+                                            } else {
+                                                pageNum = currentPage - 2 + i;
+                                            }
+                                            return (
+                                                <button
+                                                    key={pageNum}
+                                                    onClick={() => setCurrentPage(pageNum)}
+                                                    className="w-10 h-10 rounded-xl font-semibold transition-all cursor-pointer"
+                                                    style={{
+                                                        background: currentPage === pageNum ? 'var(--gradient-warm)' : 'transparent',
+                                                        color: currentPage === pageNum ? 'white' : 'var(--charcoal)',
+                                                        fontFamily: 'var(--font-outfit)'
+                                                    }}
+                                                >
+                                                    {pageNum}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button
+                                        onClick={goToNextPage}
+                                        disabled={currentPage === totalPages}
+                                        className="px-5 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                                        style={{
+                                            background: currentPage === totalPages ? 'var(--sand)' : 'var(--gradient-warm)',
+                                            color: currentPage === totalPages ? 'var(--charcoal)' : 'white',
+                                            fontFamily: 'var(--font-outfit)'
+                                        }}
+                                    >
+                                        Weiter
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+                    </>
+                )}
+
+                {/* Team Verwaltung Tab Content - Superadmin Only */}
+                {activeTab === 'team' && userRole === 'superadmin' && (
+                    <>
+                        {/* Page Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                    Team Verwaltung
+                                </h2>
+                                <p style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                    {teamMembers.length} {teamMembers.length === 1 ? 'Teammitglied' : 'Teammitglieder'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={refreshTeamMembers}
+                                className="glass-card px-5 py-3 flex items-center gap-2 text-sm font-semibold transition-all hover:opacity-80 cursor-pointer"
+                                style={{ color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Aktualisieren
+                            </button>
+                        </div>
+
+                        {/* Promote User Form */}
+                        <div className="glass-card p-6 mb-8">
+                            <h3 className="text-lg font-bold mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                Benutzer zum Admin hochstufen
+                            </h3>
+                            <form onSubmit={handlePromoteToAdmin} className="flex flex-col sm:flex-row gap-4">
+                                <div className="flex-1">
+                                    <input
+                                        type="email"
+                                        value={promoteEmail}
+                                        onChange={(e) => setPromoteEmail(e.target.value)}
+                                        placeholder="E-Mail-Adresse des Benutzers"
+                                        className="w-full px-4 py-3 rounded-xl transition-all"
+                                        style={{
+                                            background: 'white',
+                                            border: '2px solid var(--sand)',
+                                            color: 'var(--charcoal)',
+                                            fontFamily: 'var(--font-outfit)'
+                                        }}
+                                    />
+                                    <p className="text-xs mt-2" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                        Der Benutzer muss bereits ein Konto bei Bereket Market haben.
+                                    </p>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={promotingUser || !promoteEmail.trim()}
+                                    className="btn-primary px-6 py-3 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                                    style={{ fontFamily: 'var(--font-outfit)' }}
+                                >
+                                    {promotingUser ? (
+                                        <>
+                                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                            <span>Wird hochgestuft...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                            </svg>
+                                            <span>Zum Admin hochstufen</span>
+                                        </>
+                                    )}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Team Members List */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                Aktuelle Teammitglieder
+                            </h3>
+
+                            {teamMembers.length === 0 ? (
+                                <div className="glass-card p-12 text-center">
+                                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'var(--sand)' }}>
+                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--warm-gray)' }}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                        Keine Teammitglieder
+                                    </h3>
+                                    <p style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                        Stufen Sie Benutzer hoch, um Ihr Team aufzubauen.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {teamMembers.map((member) => (
+                                        <div key={member.id} className="glass-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                {/* Avatar */}
+                                                <div
+                                                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+                                                    style={{
+                                                        background: member.role === 'superadmin' ? 'var(--gradient-warm)' : 'var(--warm-gray)',
+                                                        fontFamily: 'var(--font-outfit)'
+                                                    }}
+                                                >
+                                                    {member.email.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>
+                                                            {member.email}
+                                                        </span>
+                                                        {/* Role Badge */}
+                                                        <span
+                                                            className="px-2 py-0.5 rounded-full text-xs font-bold uppercase"
+                                                            style={{
+                                                                background: member.role === 'superadmin' ? 'var(--saffron)' : 'var(--warm-gray)',
+                                                                color: 'white',
+                                                                fontFamily: 'var(--font-outfit)',
+                                                                letterSpacing: '0.05em'
+                                                            }}
+                                                        >
+                                                            {member.role === 'superadmin' ? 'Superadmin' : 'Admin'}
+                                                        </span>
+                                                        {member.id === userId && (
+                                                            <span
+                                                                className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                                                                style={{
+                                                                    background: 'rgba(107, 142, 122, 0.15)',
+                                                                    color: 'var(--cardamom)',
+                                                                    fontFamily: 'var(--font-outfit)'
+                                                                }}
+                                                            >
+                                                                Sie
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                                        Beigetreten: {new Date(member.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons - Only for other users, not yourself */}
+                                            {member.id !== userId && member.role !== 'superadmin' && (
+                                                <div className="flex items-center gap-2">
+                                                    {/* Promote to Superadmin */}
+                                                    <button
+                                                        onClick={() => handlePromoteToSuperadmin(member.id)}
+                                                        className="px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer hover:opacity-80"
+                                                        style={{
+                                                            background: 'rgba(230, 168, 69, 0.1)',
+                                                            color: 'var(--saffron-dark)',
+                                                            fontFamily: 'var(--font-outfit)'
+                                                        }}
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                                        </svg>
+                                                        Zu Superadmin
+                                                    </button>
+
+                                                    {/* Demote / Remove Admin */}
+                                                    <div className="relative">
+                                                        <button
+                                                            onClick={() => setDemoteConfirm(demoteConfirm === member.id ? null : member.id)}
+                                                            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer hover:opacity-80"
+                                                            style={{
+                                                                background: 'rgba(216, 99, 78, 0.1)',
+                                                                color: 'var(--terracotta)',
+                                                                fontFamily: 'var(--font-outfit)'
+                                                            }}
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                                            </svg>
+                                                            Entfernen
+                                                        </button>
+
+                                                        {/* Demote Confirmation Popup */}
+                                                        {demoteConfirm === member.id && (
+                                                            <div
+                                                                className="absolute bottom-full right-0 mb-2 glass-card p-3 shadow-lg z-10"
+                                                                style={{ minWidth: '200px' }}
+                                                            >
+                                                                <p className="text-xs mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>
+                                                                    Admin-Rechte entziehen?
+                                                                </p>
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => setDemoteConfirm(null)}
+                                                                        className="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all hover:opacity-70 cursor-pointer"
+                                                                        style={{ background: 'var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}
+                                                                    >
+                                                                        Abbrechen
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDemoteAdmin(member.id)}
+                                                                        className="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90 cursor-pointer"
+                                                                        style={{ background: 'var(--terracotta)', color: 'white', fontFamily: 'var(--font-outfit)' }}
+                                                                    >
+                                                                        Ja, entfernen
+                                                                    </button>
+                                                                </div>
+                                                                {/* Triangle pointer */}
+                                                                <div
+                                                                    className="absolute -bottom-1.5 right-4 w-3 h-3 rotate-45"
+                                                                    style={{ background: 'white' }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </>
                 )}
             </main>
         </div>
