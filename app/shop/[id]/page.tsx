@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ShopShareButton from './ShopShareButton';
 
-// Helper to format currency if needed, though mock used strings
+// Helper to format currency
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price);
 };
@@ -32,126 +32,159 @@ export default async function ShopProfile({
     .from('offers')
     .select('*')
     .eq('market_id', id)
-    .gt('expires_at', new Date().toISOString()) // Only valid offers
+    .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false });
 
-  // 3. Fetch Similar Markets (simple logic: get 3 other markets)
+  // 3. Fetch Similar Markets
   const { data: similarMarkets } = await supabase
     .from('markets')
-    .select('id, name, city, header_url')
+    .select('id, name, city, header_url, logo_url')
     .neq('id', id)
     .limit(3);
 
   // Data Mapping & Defaults
   const features = market.features || [];
 
-  // Safe parsing for opening hours (assuming JSON structure matches or falling back)
+  // Safe parsing for opening hours
   let openingHours: { day: string; time: string }[] = [];
   if (Array.isArray(market.opening_hours)) {
     openingHours = market.opening_hours;
   } else {
-    // Fallback if empty or invalid
     openingHours = [
-      { day: 'Mo - Fr', time: '08:00 - 20:00' },
+      { day: 'Montag - Freitag', time: '08:00 - 20:00' },
       { day: 'Samstag', time: '08:00 - 18:00' },
       { day: 'Sonntag', time: 'Geschlossen' }
     ];
   }
 
-  // Determine if open now (Simple Mock Logic as real logic requires complex parsing)
-  // For now, consistent with valid UI rendering
+  // Determine if open now (Simple Mock Logic)
   const isOpenNow = true;
 
+  // Build Maps URL properly
+  const mapsUrl = market.latitude && market.longitude
+    ? `https://www.google.com/maps?q=${market.latitude},${market.longitude}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(market.full_address || `${market.name}, ${market.city}`)}`;
+
   return (
-    <main className="min-h-screen bg-white">
-      {/* Hero Header */}
-      <div className="relative h-80 lg:h-96 w-full">
-        {/* Background Image */}
-        <div className="absolute inset-0 overflow-hidden">
-          <img
-            src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1920'}
-            alt={market.name}
-            className="w-full h-full object-cover"
-          />
-          {/* Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent h-32"></div>
-        </div>
+    <main className="min-h-screen bg-[var(--cream)]">
+      {/* ========== BREADCRUMBS (Above Hero) ========== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <nav className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
+          <Link href="/" className="hover:text-[var(--charcoal)] transition-colors cursor-pointer">Home</Link>
+          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <Link href="/shops" className="hover:text-[var(--charcoal)] transition-colors cursor-pointer">Märkte</Link>
+          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-[var(--charcoal)] truncate max-w-[200px]">{market.name}</span>
+        </nav>
+      </div>
 
-        {/* Top Navigation Overlay */}
-        <div className="absolute top-0 left-0 right-0 p-6 z-20 flex justify-between items-start">
-          {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm text-white/90 font-medium backdrop-blur-md px-4 py-2 rounded-full bg-black/10 hover:bg-black/20 transition-colors">
-            <Link href="/" className="hover:text-white transition-colors">Home</Link>
-            <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            <Link href="/shops" className="hover:text-white transition-colors">Märkte</Link>
-            <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            <span className="text-white truncate max-w-[150px] sm:max-w-none">{market.name}</span>
-          </nav>
+      {/* ========== HERO SECTION ========== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative h-[280px] md:h-[320px] lg:h-[380px] w-full rounded-2xl overflow-hidden">
+          {/* Background Image */}
+          <div className="absolute inset-0">
+            <img
+              src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1920'}
+              alt={market.name}
+              className="w-full h-full object-cover"
+            />
+            {/* Dark-to-transparent gradient at the bottom */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+          </div>
 
-          {/* Share Button */}
-          <ShopShareButton />
-        </div>
+          {/* Share Button - Top Right */}
+          <div className="absolute top-4 right-4 z-20">
+            <ShopShareButton />
+          </div>
 
-        {/* Centered Overlapping Logo */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-30">
-          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-2xl bg-white overflow-hidden flex items-center justify-center">
-            {market.logo_url ? (
-              <img src={market.logo_url} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-5xl sm:text-6xl font-black text-white"
-                style={{ background: 'var(--gradient-warm)', fontFamily: 'var(--font-playfair)' }}>
-                {market.name.charAt(0)}
-              </div>
-            )}
+          {/* Hero Content: Shop Name + Badges */}
+          <div className="absolute bottom-0 left-0 right-0 z-20 p-6 md:p-8">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4 drop-shadow-lg"
+              style={{ fontFamily: 'var(--font-playfair)', textShadow: '0 2px 10px rgba(0,0,0,0.4)' }}>
+              {market.name}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {market.is_premium && (
+                <span className="badge-premium flex items-center gap-1.5 cursor-default shadow-lg">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  Premium Partner
+                </span>
+              )}
+              {isOpenNow && (
+                <span className="badge-new flex items-center gap-1.5 cursor-default shadow-lg">
+                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                  Jetzt geöffnet
+                </span>
+              )}
+              <span className="flex items-center gap-1.5 text-white text-sm font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {market.city}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content Info - Centered Header */}
-      <div className="max-w-7xl mx-auto px-4 pt-24 pb-8 sm:px-6 lg:px-8 text-center">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[var(--charcoal)] mb-4" style={{ fontFamily: 'var(--font-playfair)' }}>
-          {market.name}
-        </h1>
+      {/* ========== MAIN CONTENT: 2-Column Grid ========== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-8 lg:gap-12">
 
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
-          {market.is_premium && (
-            <span className="badge-premium flex items-center gap-1.5 animate-fade-in-up">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              Premium Partner
-            </span>
-          )}
-          {isOpenNow && (
-            <span className="badge-new flex items-center gap-1.5 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-              Jetzt geöffnet
-            </span>
-          )}
-        </div>
+          {/* ========== LEFT COLUMN: Sticky Sidebar ========== */}
+          <aside className="md:sticky md:top-8 md:self-start space-y-6">
 
-        <div className="flex items-center justify-center gap-2 text-[var(--warm-gray)] animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          <span className="font-medium">{market.city}</span>
-        </div>
-      </div>
+            {/* Logo Card */}
+            <div
+              className="glass-card p-6 shadow-xl animate-fade-in-up flex flex-col items-center"
+              style={{
+                background: 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.5)'
+              }}
+            >
+              <div className="w-[120px] h-[120px] rounded-full border-4 border-white shadow-xl bg-white overflow-hidden flex items-center justify-center mb-4"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
+                {market.logo_url ? (
+                  <img src={market.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-4xl font-black text-white"
+                    style={{ background: 'var(--gradient-warm)', fontFamily: 'var(--font-playfair)' }}>
+                    {market.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <h2 className="text-xl font-bold text-center" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                {market.name}
+              </h2>
+              <p className="text-sm text-center mt-1" style={{ color: 'var(--warm-gray)' }}>
+                {market.city}
+              </p>
+            </div>
 
-      <div className="max-w-7xl mx-auto px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 mt-8">
-
-          {/* Left Column: Shop Info */}
-          <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             {/* Contact Information Card */}
             <div
-              className="relative overflow-hidden rounded-3xl p-6 shadow-lg"
+              className="glass-card p-6 shadow-xl animate-fade-in-up"
               style={{
-                background: 'white',
-                border: '1px solid var(--sand)'
+                background: 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                animationDelay: '0.1s'
               }}
             >
               <h2
-                className="relative text-xl font-bold mb-5 flex items-center gap-2"
+                className="text-xl font-bold mb-5 flex items-center gap-2"
                 style={{
                   fontFamily: 'var(--font-playfair)',
                   color: 'var(--charcoal)'
@@ -163,7 +196,7 @@ export default async function ShopProfile({
                 Kontakt & Info
               </h2>
 
-              <div className="relative space-y-4">
+              <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -200,10 +233,10 @@ export default async function ShopProfile({
                 </div>
 
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${market.latitude || market.city},${market.longitude || ''}`}
+                  href={mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full mt-4 py-3 rounded-xl font-bold transition-all hover:scale-[1.02] shadow-md text-sm flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full mt-4 py-3 rounded-xl font-bold transition-all hover:scale-[1.02] shadow-lg text-sm flex items-center justify-center gap-2 cursor-pointer"
                   style={{
                     background: 'var(--gradient-warm)',
                     color: 'white'
@@ -220,10 +253,13 @@ export default async function ShopProfile({
 
             {/* Opening Hours */}
             <div
-              className="rounded-3xl p-6 shadow-lg"
+              className="glass-card p-6 shadow-xl animate-fade-in-up"
               style={{
-                background: 'white',
-                border: '1px solid var(--sand)'
+                background: 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                animationDelay: '0.2s'
               }}
             >
               <h3
@@ -251,10 +287,13 @@ export default async function ShopProfile({
             {/* Features */}
             {features.length > 0 && (
               <div
-                className="rounded-3xl p-6 shadow-lg"
+                className="glass-card p-6 shadow-xl animate-fade-in-up"
                 style={{
-                  background: 'white',
-                  border: '1px solid var(--sand)'
+                  background: 'rgba(255, 255, 255, 0.75)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  animationDelay: '0.3s'
                 }}
               >
                 <h3
@@ -284,10 +323,13 @@ export default async function ShopProfile({
 
             {/* About Section */}
             <div
-              className="rounded-3xl p-6 shadow-lg"
+              className="glass-card p-6 shadow-xl animate-fade-in-up"
               style={{
-                background: 'linear-gradient(135deg, var(--cream) 0%, white 100%)',
-                border: '1px solid var(--sand)'
+                background: 'linear-gradient(135deg, rgba(250, 247, 242, 0.9) 0%, rgba(255, 255, 255, 0.85) 100%)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                animationDelay: '0.4s'
               }}
             >
               <h3
@@ -306,11 +348,12 @@ export default async function ShopProfile({
                 {market.about_text || `Willkommen bei ${market.name}! Wir bieten Ihnen täglich frische Spezialitäten und authentische Produkte aus der Region. Besuchen Sie uns und entdecken Sie die Vielfalt unseres Sortiments.`}
               </p>
             </div>
-          </div>
+          </aside>
 
-          {/* Right Column: Offers */}
-          <div className="lg:col-span-2">
-            <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          {/* ========== RIGHT COLUMN: Offers ========== */}
+          <div className="min-w-0">
+            {/* Offers Header */}
+            <div className="mb-8 animate-fade-in-up">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2
@@ -326,13 +369,15 @@ export default async function ShopProfile({
                     {offers && offers.length > 0 ? `${offers.length} Angebote verfügbar` : 'Keine aktuellen Angebote'}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold" style={{ background: 'var(--cream)', color: 'var(--warm-gray)' }}>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold cursor-default"
+                  style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(10px)', color: 'var(--warm-gray)', border: '1px solid rgba(255, 255, 255, 0.5)' }}>
                   <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--cardamom)' }}></span>
                   KI-aktualisiert
                 </div>
               </div>
             </div>
 
+            {/* Offers Grid */}
             {offers && offers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {offers.map((offer, idx) => (
@@ -340,12 +385,15 @@ export default async function ShopProfile({
                     key={offer.id || idx}
                     className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in"
                     style={{
-                      background: 'white',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                      animationDelay: `${0.5 + idx * 0.1}s`
+                      background: 'rgba(255, 255, 255, 0.8)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.5)',
+                      boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
+                      animationDelay: `${0.1 + idx * 0.1}s`
                     }}
                   >
-                    {/* Image - Clean, no overlays */}
+                    {/* Image */}
                     <div className="relative aspect-[4/3] overflow-hidden">
                       <img
                         src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
@@ -356,7 +404,6 @@ export default async function ShopProfile({
 
                     {/* Content */}
                     <div className="p-5">
-                      {/* Product Name */}
                       <h3
                         className="font-bold text-xl mb-2"
                         style={{
@@ -367,12 +414,10 @@ export default async function ShopProfile({
                         {offer.product_name}
                       </h3>
 
-                      {/* Description or Expiry */}
                       <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
                         {offer.expires_at ? `Gültig bis ${new Date(offer.expires_at).toLocaleDateString('de-DE')}` : 'Nur solange Vorrat reicht.'}
                       </p>
 
-                      {/* Price */}
                       <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
                         <span
                           className="text-2xl font-black"
@@ -389,9 +434,16 @@ export default async function ShopProfile({
                 ))}
               </div>
             ) : (
+              /* Empty State - Glassmorphism Card */
               <div
-                className="text-center py-16 rounded-3xl animate-fade-in-up"
-                style={{ background: 'var(--cream)', animationDelay: '0.5s' }}
+                className="text-center py-16 px-8 rounded-3xl animate-fade-in-up"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
+                }}
               >
                 <div
                   className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center text-3xl shadow-lg"
@@ -408,11 +460,11 @@ export default async function ShopProfile({
                 >
                   Keine Angebote verfügbar
                 </h3>
-                <p className="mb-6" style={{ color: 'var(--warm-gray)' }}>
-                  Schauen Sie bald wieder vorbei für neue Angebote!
+                <p className="mb-6 text-lg" style={{ color: 'var(--warm-gray)' }}>
+                  Schauen Sie bald wieder vorbei!
                 </p>
                 <button
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 cursor-pointer"
                   style={{ background: 'var(--charcoal)', color: 'white' }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -425,7 +477,7 @@ export default async function ShopProfile({
 
             {/* Similar Shops Section */}
             {similarMarkets && similarMarkets.length > 0 && (
-              <div className="mt-12 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+              <div className="mt-12 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                 <h3
                   className="text-xl font-bold mb-6"
                   style={{
@@ -440,8 +492,13 @@ export default async function ShopProfile({
                     <Link
                       key={otherShop.id}
                       href={`/shop/${otherShop.id}`}
-                      className="group rounded-2xl overflow-hidden shadow-md hover-scale block"
-                      style={{ background: 'white' }}
+                      className="group rounded-2xl overflow-hidden shadow-lg hover-scale block cursor-pointer"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.5)'
+                      }}
                     >
                       <div className="relative h-28 overflow-hidden">
                         <img
@@ -450,6 +507,12 @@ export default async function ShopProfile({
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        {/* Mini logo overlay */}
+                        {otherShop.logo_url && (
+                          <div className="absolute bottom-2 left-2 w-8 h-8 rounded-full border-2 border-white shadow overflow-hidden">
+                            <img src={otherShop.logo_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
                       </div>
                       <div className="p-3">
                         <p className="font-bold text-sm truncate" style={{ color: 'var(--charcoal)' }}>{otherShop.name}</p>
