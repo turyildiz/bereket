@@ -43,9 +43,9 @@ export default async function Home() {
     : premiumOffers || [];
 
   return (
-    <main className="min-h-screen overflow-hidden">
+    <main className="min-h-screen overflow-x-hidden">
       {/* Hero Section - Stunning Customer-Focused Design */}
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+      <section className="relative min-h-[90vh] flex items-center overflow-x-clip">
         {/* Full-Screen Background Image */}
         <div className="absolute inset-0">
           <img
