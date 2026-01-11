@@ -35,12 +35,18 @@ export default async function ShopProfile({
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false });
 
-  // 3. Fetch Similar Markets
-  const { data: similarMarkets } = await supabase
+  // 3. Fetch Similar Markets (Regional Zone)
+  let similarMarketsQuery = supabase
     .from('markets')
-    .select('id, name, city, header_url, logo_url')
-    .neq('id', id)
-    .limit(3);
+    .select('id, name, city, zip_code, header_url, logo_url')
+    .neq('id', id);
+
+  if (market.zip_code && market.zip_code.length >= 2) {
+    const regionPrefix = market.zip_code.substring(0, 2);
+    similarMarketsQuery = similarMarketsQuery.ilike('zip_code', `${regionPrefix}%`);
+  }
+
+  const { data: similarMarkets } = await similarMarketsQuery.limit(3);
 
   // Data Mapping & Defaults
   const features = market.features || [];
@@ -523,7 +529,9 @@ export default async function ShopProfile({
                       </div>
                       <div className="p-3">
                         <p className="font-bold text-sm truncate" style={{ color: 'var(--charcoal)' }}>{otherShop.name}</p>
-                        <p className="text-xs truncate" style={{ color: 'var(--warm-gray)' }}>{otherShop.city}</p>
+                        <p className="text-xs truncate" style={{ color: 'var(--warm-gray)' }}>
+                          {otherShop.zip_code ? `${otherShop.zip_code} ` : ''}{otherShop.city}
+                        </p>
                       </div>
                     </Link>
                   ))}

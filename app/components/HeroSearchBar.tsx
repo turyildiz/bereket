@@ -3,8 +3,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { searchPLZ, type PLZEntry } from '@/lib/plz-data';
+import { createClient } from '@/utils/supabase/client';
 
 type SearchMode = 'ort' | 'markte' | 'angebote';
+
+// Market suggestion type
+interface MarketSuggestion {
+    id: string;
+    name: string;
+    city: string;
+    logo_url: string | null;
+}
 
 const searchConfig: Record<SearchMode, { placeholder: string; icon: React.ReactNode }> = {
     ort: {
@@ -20,7 +29,7 @@ const searchConfig: Record<SearchMode, { placeholder: string; icon: React.ReactN
         placeholder: 'Suche nach einem Supermarkt...',
         icon: (
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
         ),
     },
@@ -42,30 +51,85 @@ const tabs: { id: SearchMode; label: string }[] = [
 
 export default function HeroSearchBar() {
     const router = useRouter();
+    const supabase = createClient();
+
     const [searchMode, setSearchMode] = useState<SearchMode>('ort');
     const [searchValue, setSearchValue] = useState('');
-    const [suggestions, setSuggestions] = useState<PLZEntry[]>([]);
+
+    // PLZ suggestions (for 'ort' mode)
+    const [plzSuggestions, setPlzSuggestions] = useState<PLZEntry[]>([]);
+
+    // Market suggestions (for 'markte' mode)
+    const [marketSuggestions, setMarketSuggestions] = useState<MarketSuggestion[]>([]);
+    const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
+
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [selectedLocation, setSelectedLocation] = useState<PLZEntry | null>(null);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
     const { placeholder, icon } = searchConfig[searchMode];
+
+    // Get current suggestions based on mode
+    const currentSuggestions = searchMode === 'ort' ? plzSuggestions : marketSuggestions;
 
     // Search PLZ/City when typing (only for 'ort' mode)
     useEffect(() => {
         if (searchMode === 'ort' && searchValue.length >= 2) {
             const results = searchPLZ(searchValue, 5);
-            setSuggestions(results);
+            setPlzSuggestions(results);
             setShowSuggestions(results.length > 0);
             setSelectedIndex(-1);
-        } else {
-            setSuggestions([]);
+        } else if (searchMode === 'ort') {
+            setPlzSuggestions([]);
             setShowSuggestions(false);
         }
     }, [searchValue, searchMode]);
+
+    // Search Markets when typing (for 'markte' mode)
+    useEffect(() => {
+        if (searchMode === 'markte' && searchValue.length >= 2) {
+            // Debounce the search
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+
+            debounceRef.current = setTimeout(async () => {
+                setIsLoadingMarkets(true);
+                try {
+                    // Search by name ONLY (city is displayed but not used as search criteria)
+                    const { data, error } = await supabase
+                        .from('markets')
+                        .select('id, name, city, logo_url')
+                        .ilike('name', `%${searchValue}%`)
+                        .order('is_premium', { ascending: false })
+                        .limit(5);
+
+                    if (!error && data) {
+                        setMarketSuggestions(data);
+                        setShowSuggestions(data.length > 0);
+                        setSelectedIndex(-1);
+                    }
+                } catch (err) {
+                    console.error('Error searching markets:', err);
+                } finally {
+                    setIsLoadingMarkets(false);
+                }
+            }, 300); // 300ms debounce
+        } else if (searchMode === 'markte') {
+            setMarketSuggestions([]);
+            setShowSuggestions(false);
+        }
+
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, [searchValue, searchMode, supabase]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -84,17 +148,24 @@ export default function HeroSearchBar() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Handle selection
-    const handleSelect = useCallback((entry: PLZEntry) => {
+    // Handle PLZ selection
+    const handleSelectPLZ = useCallback((entry: PLZEntry) => {
         setSearchValue(`${entry.plz} ${entry.city}`);
         setSelectedLocation(entry);
         setShowSuggestions(false);
         setSelectedIndex(-1);
     }, []);
 
+    // Handle Market selection - navigate directly to shop page
+    const handleSelectMarket = useCallback((market: MarketSuggestion) => {
+        setShowSuggestions(false);
+        setSelectedIndex(-1);
+        router.push(`/shop/${market.id}`);
+    }, [router]);
+
     // Handle keyboard navigation
     const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!showSuggestions || suggestions.length === 0) {
+        if (!showSuggestions || currentSuggestions.length === 0) {
             if (event.key === 'Enter') {
                 handleSearch();
             }
@@ -105,19 +176,23 @@ export default function HeroSearchBar() {
             case 'ArrowDown':
                 event.preventDefault();
                 setSelectedIndex((prev) =>
-                    prev < suggestions.length - 1 ? prev + 1 : 0
+                    prev < currentSuggestions.length - 1 ? prev + 1 : 0
                 );
                 break;
             case 'ArrowUp':
                 event.preventDefault();
                 setSelectedIndex((prev) =>
-                    prev > 0 ? prev - 1 : suggestions.length - 1
+                    prev > 0 ? prev - 1 : currentSuggestions.length - 1
                 );
                 break;
             case 'Enter':
                 event.preventDefault();
-                if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-                    handleSelect(suggestions[selectedIndex]);
+                if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
+                    if (searchMode === 'ort') {
+                        handleSelectPLZ(plzSuggestions[selectedIndex]);
+                    } else if (searchMode === 'markte') {
+                        handleSelectMarket(marketSuggestions[selectedIndex]);
+                    }
                 } else {
                     handleSearch();
                 }
@@ -127,7 +202,7 @@ export default function HeroSearchBar() {
                 setSelectedIndex(-1);
                 break;
         }
-    }, [showSuggestions, suggestions, selectedIndex, handleSelect]);
+    }, [showSuggestions, currentSuggestions, selectedIndex, searchMode, plzSuggestions, marketSuggestions, handleSelectPLZ, handleSelectMarket]);
 
     // Handle search submission
     const handleSearch = () => {
@@ -161,6 +236,97 @@ export default function HeroSearchBar() {
         setSelectedLocation(null);
     };
 
+    // Render suggestions based on mode
+    const renderSuggestions = () => {
+        if (searchMode === 'ort') {
+            return plzSuggestions.map((entry, index) => (
+                <button
+                    key={`${entry.plz}-${entry.city}`}
+                    onClick={() => handleSelectPLZ(entry)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`
+                        w-full px-5 py-4 text-left flex items-center gap-3 transition-colors cursor-pointer
+                        ${index === selectedIndex ? 'bg-orange-50' : 'hover:bg-gray-50'}
+                    `}
+                    style={{ color: 'var(--charcoal)' }}
+                    role="option"
+                    aria-selected={index === selectedIndex}
+                >
+                    <svg className="w-5 h-5 shrink-0" style={{ color: 'var(--terracotta)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div>
+                        <span className="font-bold">{entry.plz}</span>
+                        <span className="mx-2 text-gray-400">•</span>
+                        <span>{entry.city}</span>
+                    </div>
+                </button>
+            ));
+        }
+
+        if (searchMode === 'markte') {
+            return marketSuggestions.map((market, index) => (
+                <button
+                    key={market.id}
+                    onClick={() => handleSelectMarket(market)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`
+                        w-full px-5 py-4 text-left flex items-center gap-4 transition-colors cursor-pointer
+                        ${index === selectedIndex ? 'bg-orange-50' : 'hover:bg-gray-50'}
+                    `}
+                    style={{ color: 'var(--charcoal)' }}
+                    role="option"
+                    aria-selected={index === selectedIndex}
+                >
+                    {/* Market Logo */}
+                    <div
+                        className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-sm"
+                        style={{ border: '1px solid var(--sand)' }}
+                    >
+                        {market.logo_url ? (
+                            <img
+                                src={market.logo_url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div
+                                className="w-full h-full flex items-center justify-center text-sm font-bold text-white"
+                                style={{ background: 'var(--gradient-warm)' }}
+                            >
+                                {market.name.charAt(0)}
+                            </div>
+                        )}
+                    </div>
+                    {/* Market Info */}
+                    <div className="flex-1 min-w-0">
+                        <div className="font-bold truncate">{market.name}</div>
+                        <div className="text-sm flex items-center gap-1" style={{ color: 'var(--warm-gray)' }}>
+                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            {market.city}
+                        </div>
+                    </div>
+                    {/* Arrow */}
+                    <svg
+                        className="w-5 h-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ color: 'var(--terracotta)' }}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            ));
+        }
+
+        return null;
+    };
+
     return (
         <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             {/* Tabs */}
@@ -175,9 +341,11 @@ export default function HeroSearchBar() {
                             onClick={() => {
                                 setSearchMode(tab.id);
                                 setSearchValue('');
-                                setSuggestions([]);
+                                setPlzSuggestions([]);
+                                setMarketSuggestions([]);
                                 setShowSuggestions(false);
                                 setSelectedLocation(null);
+                                setSelectedIndex(-1);
                             }}
                             className={`
                 px-5 py-3 rounded-xl text-sm sm:text-base font-bold transition-all cursor-pointer
@@ -208,7 +376,7 @@ export default function HeroSearchBar() {
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         onFocus={() => {
-                            if (searchMode === 'ort' && suggestions.length > 0) {
+                            if (currentSuggestions.length > 0) {
                                 setShowSuggestions(true);
                             }
                         }}
@@ -224,42 +392,51 @@ export default function HeroSearchBar() {
                         aria-haspopup="listbox"
                     />
 
+                    {/* Loading indicator for market search */}
+                    {searchMode === 'markte' && isLoadingMarkets && (
+                        <div className="absolute right-5 top-1/2 -translate-y-1/2">
+                            <div
+                                className="w-5 h-5 border-2 rounded-full animate-spin"
+                                style={{ borderColor: 'var(--sand)', borderTopColor: 'var(--saffron)' }}
+                            />
+                        </div>
+                    )}
+
                     {/* Suggestions Dropdown */}
-                    {showSuggestions && suggestions.length > 0 && (
+                    {showSuggestions && currentSuggestions.length > 0 && (
                         <div
                             ref={dropdownRef}
                             className="absolute top-full left-0 right-0 mt-2 rounded-2xl shadow-2xl overflow-hidden z-50"
                             style={{
-                                background: 'rgba(255, 255, 255, 0.95)',
+                                background: 'rgba(255, 255, 255, 0.98)',
                                 backdropFilter: 'blur(20px)',
                                 border: '1px solid var(--sand)',
                             }}
                             role="listbox"
                         >
-                            {suggestions.map((entry, index) => (
-                                <button
-                                    key={`${entry.plz}-${entry.city}`}
-                                    onClick={() => handleSelect(entry)}
-                                    onMouseEnter={() => setSelectedIndex(index)}
-                                    className={`
-                    w-full px-5 py-4 text-left flex items-center gap-3 transition-colors cursor-pointer
-                    ${index === selectedIndex ? 'bg-orange-50' : 'hover:bg-gray-50'}
-                  `}
-                                    style={{ color: 'var(--charcoal)' }}
-                                    role="option"
-                                    aria-selected={index === selectedIndex}
+                            {/* Header for market suggestions */}
+                            {searchMode === 'markte' && (
+                                <div
+                                    className="px-5 py-3 text-xs font-bold uppercase tracking-wider border-b"
+                                    style={{ color: 'var(--warm-gray)', borderColor: 'var(--sand)', background: 'var(--cream)' }}
                                 >
-                                    <svg className="w-5 h-5 shrink-0" style={{ color: 'var(--terracotta)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    Märkte
+                                </div>
+                            )}
+                            {renderSuggestions()}
+
+                            {/* Footer hint for markets */}
+                            {searchMode === 'markte' && (
+                                <div
+                                    className="px-5 py-3 text-xs border-t flex items-center gap-2"
+                                    style={{ color: 'var(--warm-gray)', borderColor: 'var(--sand)', background: 'var(--cream)' }}
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <div>
-                                        <span className="font-bold">{entry.plz}</span>
-                                        <span className="mx-2 text-gray-400">•</span>
-                                        <span>{entry.city}</span>
-                                    </div>
-                                </button>
-                            ))}
+                                    Klicke oder drücke Enter um direkt zum Markt zu gehen
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
