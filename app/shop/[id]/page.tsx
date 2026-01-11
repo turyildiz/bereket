@@ -210,7 +210,14 @@ export default async function ShopProfile({
                   <div>
                     <p className="font-semibold text-sm" style={{ color: 'var(--charcoal)' }}>Adresse</p>
                     <p className="text-sm" style={{ color: 'var(--warm-gray)' }}>
-                      {market.full_address || `${market.name}, ${market.city}`}
+                      {market.full_address ? (
+                        <>
+                          {market.full_address}<br />
+                          {market.zip_code} {market.city}
+                        </>
+                      ) : (
+                        `${market.name}, ${market.city}`
+                      )}
                     </p>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import HeroSearchBar from './components/HeroSearchBar';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -97,75 +98,9 @@ export default async function Home() {
                 Frische Angebote von türkischen, arabischen & orientalischen Märkten – täglich neu für dich.
               </p>
 
-              {/* Search Bar */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                <div className="relative flex-1 max-w-md">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2">
-                    <svg className="w-6 h-6" style={{ color: 'var(--warm-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Deine Stadt oder Postleitzahl..."
-                    className="w-full pl-14 pr-6 py-5 rounded-2xl text-lg font-medium focus:outline-none focus:ring-4 focus:ring-orange-200 shadow-2xl"
-                    style={{
-                      background: 'white',
-                      color: 'var(--charcoal)'
-                    }}
-                  />
-                </div>
-                <button
-                  className="btn-primary px-10 py-5 font-bold rounded-2xl text-lg shadow-2xl flex items-center justify-center gap-3 whitespace-nowrap"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  Deals finden
-                </button>
-              </div>
 
-              {/* Trust Indicators */}
-              <div className="flex flex-wrap items-center gap-6 sm:gap-10 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-3">
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden"
-                      >
-                        <img
-                          src={`https://images.unsplash.com/photo-${['1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330', '1500648767791-00dcc994a43e', '1534528741775-53994a69daeb', '1506794778202-cad84cf45f1d'][i]}?auto=format&fit=crop&w=100&h=100`}
-                          alt="User"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-white">
-                    <span className="font-black text-lg">10K+</span>
-                    <span className="text-white/70 text-sm ml-1">Nutzer</span>
-                  </div>
-                </div>
-                <div className="h-8 w-px bg-white/30 hidden sm:block"></div>
-                <div className="flex items-center gap-2 text-white">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <svg key={i} className="w-5 h-5" fill="#FFD700" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <span className="font-bold">4.9</span>
-                  <span className="text-white/70 text-sm">(2.4K Bewertungen)</span>
-                </div>
-                <div className="h-8 w-px bg-white/30 hidden sm:block"></div>
-                <div className="text-white">
-                  <span className="font-black text-lg">50+</span>
-                  <span className="text-white/70 text-sm ml-1">Märkte</span>
-                </div>
-              </div>
+              {/* Search Bar with Tabs */}
+              <HeroSearchBar />
             </div>
 
             {/* Right Column - Floating Deal Cards - Takes 2 columns */}

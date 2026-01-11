@@ -35,6 +35,7 @@ export default function MarketManager({
     const [formData, setFormData] = useState<MarketFormData>({
         name: '',
         city: '',
+        zip_code: '',
         full_address: '',
         latitude: '',
         longitude: '',
@@ -270,6 +271,7 @@ export default function MarketManager({
         const marketData = {
             name: formData.name,
             city: formData.city,
+            zip_code: formData.zip_code || null,
             location: formData.full_address,
             full_address: formData.full_address,
             latitude: formData.latitude ? parseFloat(formData.latitude) : null,
@@ -322,6 +324,7 @@ export default function MarketManager({
         setFormData({
             name: '',
             city: '',
+            zip_code: '',
             full_address: '',
             latitude: '',
             longitude: '',
@@ -345,6 +348,7 @@ export default function MarketManager({
         setFormData({
             name: market.name,
             city: market.city || '',
+            zip_code: market.zip_code || '',
             full_address: market.full_address || '',
             latitude: market.latitude?.toString() || '',
             longitude: market.longitude?.toString() || '',
@@ -588,14 +592,20 @@ export default function MarketManager({
                                         <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Marktname *</label>
                                         <input type="text" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} placeholder="z.B. Istanbul Supermarkt" required className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Stadt *</label>
-                                        <input type="text" value={formData.city} onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))} placeholder="z.B. Frankfurt" required className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>PLZ *</label>
+                                            <input type="text" value={formData.zip_code} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 5); setFormData(prev => ({ ...prev, zip_code: val })); }} placeholder="z.B. 60311" required pattern="[0-9]{5}" maxLength={5} className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Stadt *</label>
+                                            <input type="text" value={formData.city} onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))} placeholder="z.B. Frankfurt" required className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                        </div>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Vollständige Adresse *</label>
-                                    <input type="text" value={formData.full_address} onChange={(e) => setFormData(prev => ({ ...prev, full_address: e.target.value }))} placeholder="z.B. Musterstraße 123, 60311 Frankfurt" required className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                    <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Adresse *</label>
+                                    <input type="text" value={formData.full_address} onChange={(e) => setFormData(prev => ({ ...prev, full_address: e.target.value }))} placeholder="z.B. Musterstraße 123" required className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Telefon (Kundenkontakt)</label>
@@ -871,7 +881,7 @@ export default function MarketManager({
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
-                                        <span>{market.full_address}</span>
+                                        <span>{market.zip_code && <strong className="font-semibold">{market.zip_code}</strong>} {market.city}</span>
                                     </div>
                                     <div className="flex gap-2 pt-3 border-t relative" style={{ borderColor: 'var(--sand)' }}>
                                         <a href={`/shop/${market.id}`} target="_blank" rel="noopener noreferrer" className="py-2 px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(107,142,122,0.2)]" style={{ background: 'rgba(107, 142, 122, 0.1)', color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
