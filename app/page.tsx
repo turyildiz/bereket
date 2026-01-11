@@ -1,20 +1,23 @@
-import { FEATURED_SHOPS, LATEST_OFFERS } from './mock-data';
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/server';
+import { LATEST_OFFERS } from './mock-data';
 
-// Badge types for variety
-const BADGE_TYPES = ['premium', 'new', 'hot'] as const;
-type BadgeType = typeof BADGE_TYPES[number];
+export default async function Home() {
+  // Fetch premium markets from Supabase
+  const supabase = await createClient();
+  const { data: premiumMarkets } = await supabase
+    .from('markets')
+    .select('id, name, city, header_url, logo_url, about_text')
+    .eq('is_premium', true)
+    .order('name', { ascending: true });
 
-const getBadgeForShop = (index: number): { type: BadgeType; label: string } => {
-  const badges = [
-    { type: 'premium' as BadgeType, label: 'Premium Partner' },
-    { type: 'new' as BadgeType, label: 'Neu dabei' },
-    { type: 'hot' as BadgeType, label: 'Beliebt' },
-  ];
-  return badges[index % badges.length];
-};
+  // Fetch newest markets (6 most recently created)
+  const { data: newestMarkets } = await supabase
+    .from('markets')
+    .select('id, name, city, header_url, logo_url, about_text, is_premium')
+    .order('created_at', { ascending: false })
+    .limit(6);
 
-export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden">
       {/* Hero Section - Stunning Customer-Focused Design */}
@@ -191,102 +194,273 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Shops Section - Enhanced */}
-      <section className="relative mx-auto max-w-7xl px-4 py-20 sm:py-28 sm:px-6 lg:px-8">
-        <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4" style={{ background: 'var(--cream)', color: 'var(--warm-gray)' }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-              </svg>
-              <span className="text-sm font-bold">Handverlesen</span>
-            </div>
-            <h2
-              className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
-              style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
-            >
-              Empfohlene Shops
-            </h2>
-            <p className="text-lg sm:text-xl" style={{ color: 'var(--warm-gray)' }}>
-              Die beliebtesten Märkte in deiner Region.
-            </p>
-          </div>
-          <Link
-            href="/shops"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:gap-4"
-            style={{ background: 'var(--charcoal)', color: 'white' }}
-          >
-            Alle ansehen
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURED_SHOPS.slice(0, 6).map((shop, idx) => {
-            const badge = getBadgeForShop(idx);
-            return (
-              <Link
-                href={`/shop/${shop.id}`}
-                key={shop.id}
-                className="group relative rounded-3xl overflow-hidden hover-lift cursor-pointer block animate-scale-in"
-                style={{
-                  animationDelay: `${idx * 0.1}s`,
-                  background: 'white',
-                  boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
-                }}
+      {/* Featured Shops Section - Dynamic from Supabase */}
+      {premiumMarkets && premiumMarkets.length > 0 && (
+        <section className="relative mx-auto max-w-7xl px-4 py-20 sm:py-28 sm:px-6 lg:px-8">
+          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4" style={{ background: 'var(--cream)', color: 'var(--warm-gray)' }}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <span className="text-sm font-bold">Handverlesen</span>
+              </div>
+              <h2
+                className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
+                style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
               >
-                {/* Image Container */}
-                <div className="relative h-64 overflow-hidden">
-                  <img
-                    src={shop.image}
-                    alt={shop.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  {/* Overlay Gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                Empfohlene Shops
+              </h2>
+              <p className="text-lg sm:text-xl" style={{ color: 'var(--warm-gray)' }}>
+                Die beliebtesten Märkte in deiner Region.
+              </p>
+            </div>
+            <Link
+              href="/shops"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:gap-4 cursor-pointer"
+              style={{ background: 'var(--charcoal)', color: 'white' }}
+            >
+              Alle ansehen
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
 
-                  {/* Badge - Varied */}
-                  <div className={`absolute top-5 right-5 badge-${badge.type}`}>
-                    {badge.label}
-                  </div>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {premiumMarkets.map((market, idx) => {
+              // Truncate about_text to ~80 characters
+              const teaser = market.about_text
+                ? market.about_text.length > 80
+                  ? market.about_text.substring(0, 80).trim() + '...'
+                  : market.about_text
+                : `Entdecken Sie ${market.name} – Ihr Premium-Markt für frische Spezialitäten.`;
 
-                  {/* Shop Name Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <h3
-                      className="font-black text-2xl text-white mb-1"
-                      style={{ fontFamily: 'var(--font-playfair)' }}
-                    >
-                      {shop.name}
-                    </h3>
-                    <p className="text-white/90 font-medium flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              return (
+                <Link
+                  href={`/shop/${market.id}`}
+                  key={market.id}
+                  className="group relative rounded-3xl overflow-hidden cursor-pointer block animate-scale-in transition-transform duration-300 hover:scale-[1.03]"
+                  style={{
+                    animationDelay: `${idx * 0.1}s`,
+                    background: 'white',
+                    boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
+                  }}
+                >
+                  {/* Image Section */}
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img
+                      src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
+                      alt={market.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+
+                    {/* Premium Badge - Top Right */}
+                    <div className="absolute top-4 right-4 badge-premium cursor-default shadow-lg">
+                      <svg className="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      {shop.branch}
-                    </p>
+                      Premium Partner
+                    </div>
                   </div>
-                </div>
 
-                {/* Hover Arrow */}
-                <div className="absolute bottom-6 right-6 w-12 h-12 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 shadow-lg" style={{ background: 'var(--gradient-warm)' }}>
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
+                  {/* Content Section with Overlapping Logo */}
+                  <div className="relative p-6 pt-10">
+                    {/* Overlapping Logo - 60x60px, positioned half over image */}
+                    <div
+                      className="absolute -top-8 left-6 w-[60px] h-[60px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white"
+                      style={{ boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)' }}
+                    >
+                      {market.logo_url ? (
+                        <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
+                          {market.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
 
-                {/* Decorative Corner */}
-                <div
-                  className="absolute top-0 left-0 w-28 h-28 opacity-20 rounded-br-full transition-opacity group-hover:opacity-40"
-                  style={{ background: 'var(--gradient-warm)' }}
-                ></div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+                    {/* Market Name */}
+                    <h3
+                      className="font-bold text-xl mb-2 truncate"
+                      style={{
+                        fontFamily: 'var(--font-playfair)',
+                        color: 'var(--charcoal)'
+                      }}
+                    >
+                      {market.name}
+                    </h3>
+
+                    {/* Teaser Text */}
+                    <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>
+                      {teaser}
+                    </p>
+
+                    {/* City with MapPin */}
+                    <div
+                      className="flex items-center justify-between pt-4 border-t"
+                      style={{ borderColor: 'var(--sand)' }}
+                    >
+                      <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
+                        <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--terracotta)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {market.city}
+                      </div>
+
+                      {/* Arrow indicator */}
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: 'var(--cream)' }}>
+                        <svg className="w-4 h-4" style={{ color: 'var(--terracotta)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {/* ========== NEU DABEI SECTION ========== */}
+      {newestMarkets && newestMarkets.length > 0 && (
+        <section className="relative mx-auto max-w-7xl px-4 py-20 sm:py-24 sm:px-6 lg:px-8">
+          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span className="text-sm font-bold">Frisch dabei</span>
+              </div>
+              <h2
+                className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
+                style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
+              >
+                Neu Dabei
+              </h2>
+              <p className="text-lg sm:text-xl" style={{ color: 'var(--warm-gray)' }}>
+                Entdecke die neuesten Märkte in deiner Community.
+              </p>
+            </div>
+            <Link
+              href="/shops"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:gap-4 cursor-pointer"
+              style={{ background: 'var(--charcoal)', color: 'white' }}
+            >
+              Alle ansehen
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {newestMarkets.map((market, idx) => {
+              // Truncate about_text to ~100 characters
+              const teaser = market.about_text
+                ? market.about_text.length > 100
+                  ? market.about_text.substring(0, 100).trim() + '...'
+                  : market.about_text
+                : `Willkommen bei ${market.name} – Ihr neuer Markt für frische Spezialitäten.`;
+
+              return (
+                <Link
+                  href={`/shop/${market.id}`}
+                  key={market.id}
+                  className="group relative rounded-3xl overflow-hidden cursor-pointer block animate-scale-in transition-transform duration-300 hover:scale-[1.03]"
+                  style={{
+                    animationDelay: `${idx * 0.1}s`,
+                    background: 'white',
+                    boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
+                  }}
+                >
+                  {/* Image Section */}
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img
+                      src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
+                      alt={market.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+
+                    {/* Smart Badge - Premium or NEU */}
+                    {market.is_premium ? (
+                      <div className="absolute top-4 right-4 badge-premium cursor-default shadow-lg">
+                        <svg className="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        Premium Partner
+                      </div>
+                    ) : (
+                      <div className="absolute top-4 right-4 badge-new cursor-default shadow-lg">
+                        <svg className="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Neu
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content Section with Overlapping Logo */}
+                  <div className="relative p-6 pt-10">
+                    {/* Overlapping Logo - 60x60px, positioned half over image */}
+                    <div
+                      className="absolute -top-8 left-6 w-[60px] h-[60px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white"
+                      style={{ boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)' }}
+                    >
+                      {market.logo_url ? (
+                        <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white" style={{ background: 'var(--gradient-fresh)' }}>
+                          {market.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Market Name */}
+                    <h3
+                      className="font-bold text-xl mb-2 truncate"
+                      style={{
+                        fontFamily: 'var(--font-playfair)',
+                        color: 'var(--charcoal)'
+                      }}
+                    >
+                      {market.name}
+                    </h3>
+
+                    {/* Teaser Text */}
+                    <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>
+                      {teaser}
+                    </p>
+
+                    {/* City with MapPin */}
+                    <div
+                      className="flex items-center justify-between pt-4 border-t"
+                      style={{ borderColor: 'var(--sand)' }}
+                    >
+                      <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
+                        <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {market.city}
+                      </div>
+
+                      {/* Arrow indicator */}
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: 'var(--mint)' }}>
+                        <svg className="w-4 h-4" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Latest Offers Section - Enhanced */}
       <section
@@ -413,7 +587,7 @@ export default function Home() {
           {/* Load More Button */}
           <div className="mt-16 text-center">
             <button
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+              className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all cursor-pointer"
               style={{
                 background: 'var(--gradient-warm)',
                 color: 'white'
@@ -448,7 +622,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             <button
-              className="btn-primary px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl inline-flex items-center justify-center gap-3"
+              className="btn-primary px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl inline-flex items-center justify-center gap-3 cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -456,7 +630,7 @@ export default function Home() {
               Kostenlos registrieren
             </button>
             <button
-              className="px-10 py-5 rounded-2xl font-bold text-lg border-2 border-white/30 text-white hover:bg-white/10 transition-all inline-flex items-center justify-center gap-3"
+              className="px-10 py-5 rounded-2xl font-bold text-lg border-2 border-white/30 text-white hover:bg-white/10 transition-all inline-flex items-center justify-center gap-3 cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -473,7 +647,7 @@ export default function Home() {
               { value: '247', label: 'Angebote heute' },
               { value: '4.9★', label: 'Bewertung' }
             ].map((stat, idx) => (
-              <div key={idx} className="glass-card p-6 hover-scale" style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
+              <div key={idx} className="glass-card p-6 hover-scale cursor-default" style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
                 <div className="text-3xl font-black text-white mb-1" style={{ fontFamily: 'var(--font-playfair)' }}>{stat.value}</div>
                 <div className="text-sm text-white/70">{stat.label}</div>
               </div>
