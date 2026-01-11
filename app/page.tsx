@@ -1,15 +1,16 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
-import { LATEST_OFFERS } from './mock-data';
 
 export default async function Home() {
-  // Fetch premium markets from Supabase
   const supabase = await createClient();
+
+  // Fetch top 6 premium markets
   const { data: premiumMarkets } = await supabase
     .from('markets')
     .select('id, name, city, header_url, logo_url, about_text')
     .eq('is_premium', true)
-    .order('name', { ascending: true });
+    .order('name', { ascending: true })
+    .limit(6);
 
   // Fetch newest markets (6 most recently created)
   const { data: newestMarkets } = await supabase
@@ -17,6 +18,28 @@ export default async function Home() {
     .select('id, name, city, header_url, logo_url, about_text, is_premium')
     .order('created_at', { ascending: false })
     .limit(6);
+
+  // Fetch latest offers with market info
+  const { data: latestOffers } = await supabase
+    .from('offers')
+    .select('id, product_name, price, image_url, expires_at, market_id, markets(id, name)')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(6);
+
+  // Fetch 10 recent offers from premium markets for hero floating cards
+  const { data: premiumOffers } = await supabase
+    .from('offers')
+    .select('id, product_name, price, image_url, market_id, markets!inner(id, name, city, is_premium)')
+    .eq('markets.is_premium', true)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  // Select 2 random offers for hero display
+  const heroOffers = premiumOffers && premiumOffers.length >= 2
+    ? premiumOffers.sort(() => Math.random() - 0.5).slice(0, 2)
+    : premiumOffers || [];
 
   return (
     <main className="min-h-screen overflow-hidden">
@@ -148,37 +171,89 @@ export default async function Home() {
             {/* Right Column - Floating Deal Cards - Takes 2 columns */}
             <div className="lg:col-span-2 hidden lg:flex justify-center items-center">
               <div className="relative">
-                {/* Main Deal Card */}
-                <div className="bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float">
-                  <div className="relative rounded-2xl overflow-hidden mb-4">
-                    <img
-                      src="https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400"
-                      alt="Fresh vegetables"
-                      className="w-full h-40 object-cover"
-                    />
-                  </div>
-                  <h4 className="font-bold text-lg mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>Bio Gemüse Mix</h4>
-                  <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>Sultan Markt • Frankfurt</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>3.99€</span>
-                    <span className="text-xs px-3 py-1.5 rounded-full font-bold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>-40%</span>
-                  </div>
-                </div>
+                {/* Main Deal Card - Dynamic or Fallback */}
+                {heroOffers.length > 0 ? (
+                  <>
+                    {/* Primary Card */}
+                    <Link
+                      href={`/shop/${heroOffers[0].market_id}`}
+                      className="block bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float cursor-pointer"
+                    >
+                      <div className="relative rounded-2xl overflow-hidden mb-4">
+                        <img
+                          src={heroOffers[0].image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
+                          alt={heroOffers[0].product_name}
+                          className="w-full h-40 object-cover"
+                        />
+                        <div className="absolute top-3 right-3 badge-premium text-xs">Premium</div>
+                      </div>
+                      <h4 className="font-bold text-lg mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                        {heroOffers[0].product_name}
+                      </h4>
+                      <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>
+                        {(heroOffers[0].markets as unknown as { name: string; city: string }).name} • {(heroOffers[0].markets as unknown as { name: string; city: string }).city}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>{heroOffers[0].price}</span>
+                        <span className="text-xs px-3 py-1.5 rounded-full font-bold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>Angebot</span>
+                      </div>
+                    </Link>
 
-                {/* Secondary Card */}
-                <div className="absolute -bottom-20 -left-16 bg-white rounded-2xl shadow-xl p-4 w-56 transform -rotate-6 hover:rotate-0 transition-all duration-500 animate-float" style={{ animationDelay: '1s' }}>
-                  <div className="flex items-center gap-3">
-                    <img
-                      src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100"
-                      alt="Spices"
-                      className="w-14 h-14 rounded-xl object-cover"
-                    />
-                    <div>
-                      <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>Gewürz Set</p>
-                      <p className="text-xl font-black" style={{ color: 'var(--terracotta)' }}>4.99€</p>
+                    {/* Secondary Card */}
+                    {heroOffers.length > 1 && (
+                      <Link
+                        href={`/shop/${heroOffers[1].market_id}`}
+                        className="absolute -bottom-20 -left-16 block bg-white rounded-2xl shadow-xl p-4 w-56 transform -rotate-6 hover:rotate-0 transition-all duration-500 animate-float cursor-pointer"
+                        style={{ animationDelay: '1s' }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={heroOffers[1].image_url || 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100'}
+                            alt={heroOffers[1].product_name}
+                            className="w-14 h-14 rounded-xl object-cover"
+                          />
+                          <div>
+                            <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>{heroOffers[1].product_name}</p>
+                            <p className="text-xl font-black" style={{ color: 'var(--terracotta)' }}>{heroOffers[1].price}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  /* Fallback Static Cards */
+                  <>
+                    <div className="bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float">
+                      <div className="relative rounded-2xl overflow-hidden mb-4">
+                        <img
+                          src="https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400"
+                          alt="Fresh vegetables"
+                          className="w-full h-40 object-cover"
+                        />
+                      </div>
+                      <h4 className="font-bold text-lg mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>Bio Gemüse Mix</h4>
+                      <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>Sultan Markt • Frankfurt</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>3.99€</span>
+                        <span className="text-xs px-3 py-1.5 rounded-full font-bold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>-40%</span>
+                      </div>
                     </div>
-                  </div>
-                </div>
+
+                    <div className="absolute -bottom-20 -left-16 bg-white rounded-2xl shadow-xl p-4 w-56 transform -rotate-6 hover:rotate-0 transition-all duration-500 animate-float" style={{ animationDelay: '1s' }}>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100"
+                          alt="Spices"
+                          className="w-14 h-14 rounded-xl object-cover"
+                        />
+                        <div>
+                          <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>Gewürz Set</p>
+                          <p className="text-xl font-black" style={{ color: 'var(--terracotta)' }}>4.99€</p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -356,9 +431,67 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Mobile: Horizontal Scroll | Desktop: 3-Column Grid */}
+          <div className="md:hidden flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {newestMarkets.map((market, idx) => {
-              // Truncate about_text to ~100 characters
+              const teaser = market.about_text
+                ? market.about_text.length > 100
+                  ? market.about_text.substring(0, 100).trim() + '...'
+                  : market.about_text
+                : `Willkommen bei ${market.name} – Ihr neuer Markt für frische Spezialitäten.`;
+
+              return (
+                <Link
+                  href={`/shop/${market.id}`}
+                  key={market.id}
+                  className="group relative rounded-3xl overflow-hidden cursor-pointer block shrink-0 snap-start w-[280px] transition-transform duration-300 active:scale-[0.98]"
+                  style={{
+                    background: 'white',
+                    boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
+                  }}
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img
+                      src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
+                      alt={market.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {market.is_premium ? (
+                      <div className="absolute top-4 right-4 badge-premium cursor-default shadow-lg">Premium</div>
+                    ) : (
+                      <div className="absolute top-4 right-4 badge-new cursor-default shadow-lg">Neu</div>
+                    )}
+                  </div>
+                  <div className="relative p-5 pt-9">
+                    <div className="absolute -top-7 left-5 w-[54px] h-[54px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white">
+                      {market.logo_url ? (
+                        <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-lg font-bold text-white" style={{ background: 'var(--gradient-fresh)' }}>
+                          {market.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="font-bold text-lg mb-1 truncate" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                      {market.name}
+                    </h3>
+                    <p className="text-sm mb-3 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>{teaser}</p>
+                    <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--warm-gray)' }}>
+                      <svg className="w-4 h-4" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {market.city}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Desktop: Standard Grid */}
+          <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-8">
+            {newestMarkets.map((market, idx) => {
               const teaser = market.about_text
                 ? market.about_text.length > 100
                   ? market.about_text.substring(0, 100).trim() + '...'
@@ -376,15 +509,12 @@ export default async function Home() {
                     boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
                   }}
                 >
-                  {/* Image Section */}
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img
                       src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
                       alt={market.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
-
-                    {/* Smart Badge - Premium or NEU */}
                     {market.is_premium ? (
                       <div className="absolute top-4 right-4 badge-premium cursor-default shadow-lg">
                         <svg className="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -401,14 +531,8 @@ export default async function Home() {
                       </div>
                     )}
                   </div>
-
-                  {/* Content Section with Overlapping Logo */}
                   <div className="relative p-6 pt-10">
-                    {/* Overlapping Logo - 60x60px, positioned half over image */}
-                    <div
-                      className="absolute -top-8 left-6 w-[60px] h-[60px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white"
-                      style={{ boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)' }}
-                    >
+                    <div className="absolute -top-8 left-6 w-[60px] h-[60px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white" style={{ boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)' }}>
                       {market.logo_url ? (
                         <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -417,28 +541,11 @@ export default async function Home() {
                         </div>
                       )}
                     </div>
-
-                    {/* Market Name */}
-                    <h3
-                      className="font-bold text-xl mb-2 truncate"
-                      style={{
-                        fontFamily: 'var(--font-playfair)',
-                        color: 'var(--charcoal)'
-                      }}
-                    >
+                    <h3 className="font-bold text-xl mb-2 truncate" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
                       {market.name}
                     </h3>
-
-                    {/* Teaser Text */}
-                    <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>
-                      {teaser}
-                    </p>
-
-                    {/* City with MapPin */}
-                    <div
-                      className="flex items-center justify-between pt-4 border-t"
-                      style={{ borderColor: 'var(--sand)' }}
-                    >
+                    <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>{teaser}</p>
+                    <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: 'var(--sand)' }}>
                       <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
                         <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -446,8 +553,6 @@ export default async function Home() {
                         </svg>
                         {market.city}
                       </div>
-
-                      {/* Arrow indicator */}
                       <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: 'var(--mint)' }}>
                         <svg className="w-4 h-4" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -519,86 +624,106 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {LATEST_OFFERS.slice(0, 6).map((offer, idx) => (
-              <div
-                key={offer.id}
-                className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in"
-                style={{
-                  background: 'white',
-                  boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)',
-                  animationDelay: `${idx * 0.05}s`
-                }}
-              >
-                {/* Image - Clean, no overlays */}
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={offer.image}
-                    alt={offer.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
+            {latestOffers && latestOffers.length > 0 ? (
+              latestOffers.map((offer, idx) => {
+                const marketData = offer.markets as unknown as { id: string; name: string } | null;
+                const marketName = marketData?.name || 'Lokaler Markt';
+                const expiresDate = new Date(offer.expires_at);
+                const daysLeft = Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
-                {/* Content */}
-                <div className="p-6">
-                  {/* Product Name */}
-                  <h3
-                    className="font-bold text-xl mb-2"
+                return (
+                  <Link
+                    href={marketData ? `/shop/${marketData.id}` : '#'}
+                    key={offer.id}
+                    className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in block"
                     style={{
-                      fontFamily: 'var(--font-playfair)',
-                      color: 'var(--charcoal)'
+                      background: 'white',
+                      boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)',
+                      animationDelay: `${idx * 0.05}s`
                     }}
                   >
-                    {offer.name}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
-                    Frisch eingetroffen bei {offer.market}. Täglich neue Angebote verfügbar.
-                  </p>
-
-                  {/* Price and Market Info */}
-                  <div
-                    className="flex items-center justify-between pt-4 border-t"
-                    style={{ borderColor: 'var(--sand)' }}
-                  >
-                    {/* Price */}
-                    <span
-                      className="text-2xl font-black"
-                      style={{ color: 'var(--terracotta)' }}
-                    >
-                      {offer.price}
-                    </span>
-
-                    {/* Market Badge */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
-                        {offer.market.charAt(0)}
-                      </div>
-                      <span className="text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
-                        {offer.market}
-                      </span>
+                    {/* Image */}
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <img
+                        src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
+                        alt={offer.product_name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {/* Expiry Badge */}
+                      {daysLeft <= 3 && (
+                        <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg" style={{ background: 'var(--terracotta)', color: 'white' }}>
+                          {daysLeft <= 0 ? 'Läuft heute ab' : `Noch ${daysLeft} Tag${daysLeft > 1 ? 'e' : ''}`}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </div>
+
+                    {/* Content */}
+                    <div className="p-6">
+                      <h3
+                        className="font-bold text-xl mb-2"
+                        style={{
+                          fontFamily: 'var(--font-playfair)',
+                          color: 'var(--charcoal)'
+                        }}
+                      >
+                        {offer.product_name}
+                      </h3>
+
+                      <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
+                        Gültig bis {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} bei {marketName}.
+                      </p>
+
+                      <div
+                        className="flex items-center justify-between pt-4 border-t"
+                        style={{ borderColor: 'var(--sand)' }}
+                      >
+                        <span
+                          className="text-2xl font-black"
+                          style={{ color: 'var(--terracotta)' }}
+                        >
+                          {offer.price}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
+                            {marketName.charAt(0)}
+                          </div>
+                          <span className="text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
+                            {marketName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-lg" style={{ color: 'var(--warm-gray)' }}>
+                  Aktuell keine Angebote verfügbar. Schau bald wieder vorbei!
+                </p>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Load More Button */}
-          <div className="mt-16 text-center">
-            <button
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all cursor-pointer"
-              style={{
-                background: 'var(--gradient-warm)',
-                color: 'white'
-              }}
-            >
-              Mehr Angebote laden
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
+          {latestOffers && latestOffers.length > 0 && (
+            <div className="mt-16 text-center">
+              <Link
+                href="/offers"
+                className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all cursor-pointer"
+                style={{
+                  background: 'var(--gradient-warm)',
+                  color: 'white'
+                }}
+              >
+                Alle Angebote ansehen
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

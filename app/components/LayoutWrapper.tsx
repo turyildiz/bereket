@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useState } from 'react';
 
 interface LayoutWrapperProps {
     children: React.ReactNode;
@@ -10,6 +11,14 @@ interface LayoutWrapperProps {
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     const pathname = usePathname();
     const isAdminRoute = pathname?.startsWith('/admin');
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const navLinks = [
+        { href: '/shops', label: 'Alle Märkte' },
+        { href: '/offers', label: 'Angebote' },
+        { href: '/how-it-works', label: "So funktioniert's" },
+        { href: '/for-shops', label: 'Für Shops' },
+    ];
 
     return (
         <>
@@ -41,37 +50,40 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
                         {/* Desktop Navigation */}
                         <div className="hidden lg:flex items-center gap-8">
-                            <Link href="/shops" className="text-sm font-semibold transition-colors hover:opacity-70" style={{ color: 'var(--warm-gray)' }}>
-                                Alle Märkte
-                            </Link>
-                            <Link href="/offers" className="text-sm font-semibold transition-colors hover:opacity-70" style={{ color: 'var(--warm-gray)' }}>
-                                Angebote
-                            </Link>
-                            <Link href="/how-it-works" className="text-sm font-semibold transition-colors hover:opacity-70" style={{ color: 'var(--warm-gray)' }}>
-                                So funktioniert&apos;s
-                            </Link>
-                            <Link href="/for-shops" className="text-sm font-semibold transition-colors hover:opacity-70" style={{ color: 'var(--warm-gray)' }}>
-                                Für Shops
-                            </Link>
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className="text-sm font-semibold transition-colors hover:opacity-70"
+                                    style={{ color: 'var(--warm-gray)' }}
+                                >
+                                    {link.label}
+                                </Link>
+                            ))}
                         </div>
 
-                        {/* Actions */}
+                        {/* Actions - Hidden on mobile, only hamburger shown */}
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <button className="hidden sm:flex items-center gap-2 text-sm font-semibold hover:opacity-70 transition-opacity" style={{ color: 'var(--warm-gray)' }}>
+                            <button className="hidden lg:flex items-center gap-2 text-sm font-semibold hover:opacity-70 transition-opacity cursor-pointer" style={{ color: 'var(--warm-gray)' }}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                                 Suchen
                             </button>
-                            <button className="text-sm font-semibold hover:opacity-70 transition-opacity" style={{ color: 'var(--warm-gray)' }}>
+                            <button className="hidden lg:block text-sm font-semibold hover:opacity-70 transition-opacity cursor-pointer" style={{ color: 'var(--warm-gray)' }}>
                                 Anmelden
                             </button>
-                            <button className="rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all shrink-0" style={{ background: 'var(--gradient-warm)' }}>
+                            <button className="hidden lg:block rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all shrink-0 cursor-pointer" style={{ background: 'var(--gradient-warm)' }}>
                                 Registrieren
                             </button>
 
-                            {/* Mobile Menu Button */}
-                            <button className="lg:hidden p-2 rounded-xl hover:bg-[var(--sand)] transition-colors" style={{ color: 'var(--charcoal)' }}>
+                            {/* Mobile Menu Button (Hamburger) - Only element visible on mobile */}
+                            <button
+                                className="lg:hidden p-2 rounded-xl hover:bg-[var(--sand)] transition-colors cursor-pointer"
+                                style={{ color: 'var(--charcoal)' }}
+                                onClick={() => setMobileMenuOpen(true)}
+                                aria-label="Menü öffnen"
+                            >
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
@@ -79,6 +91,89 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                         </div>
                     </div>
                 </nav>
+            )}
+
+            {/* Mobile Menu Overlay */}
+            {mobileMenuOpen && (
+                <div className="fixed inset-0 z-[100] lg:hidden">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+
+                    {/* Slide-out Menu Panel */}
+                    <div
+                        className="absolute right-0 top-0 h-full w-[85%] max-w-sm shadow-2xl animate-slide-in-right"
+                        style={{ background: 'var(--cream)' }}
+                    >
+                        {/* Close Button */}
+                        <div className="flex justify-end p-4">
+                            <button
+                                className="p-2 rounded-xl hover:bg-[var(--sand)] transition-colors cursor-pointer"
+                                onClick={() => setMobileMenuOpen(false)}
+                                aria-label="Menü schließen"
+                                style={{ color: 'var(--charcoal)' }}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Navigation Links */}
+                        <div className="px-6 py-4 space-y-2">
+                            {/* Suchen Button */}
+                            <button
+                                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-lg font-semibold transition-colors hover:bg-[var(--sand)] text-left cursor-pointer"
+                                style={{ color: 'var(--charcoal)' }}
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Suchen
+                            </button>
+
+                            {/* Main Nav Links */}
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className="block px-4 py-3 rounded-xl text-lg font-semibold transition-colors hover:bg-[var(--sand)]"
+                                    style={{ color: 'var(--charcoal)' }}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    {link.label}
+                                </Link>
+                            ))}
+                        </div>
+
+                        {/* Divider */}
+                        <div className="mx-6 my-4 border-t" style={{ borderColor: 'var(--sand)' }} />
+
+                        {/* Auth Actions */}
+                        <div className="px-6 space-y-3">
+                            <button
+                                className="w-full px-4 py-3 rounded-xl text-lg font-semibold transition-colors hover:bg-[var(--sand)] text-left cursor-pointer"
+                                style={{ color: 'var(--charcoal)' }}
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Anmelden
+                            </button>
+                            <button
+                                className="w-full px-6 py-4 rounded-xl font-bold text-white shadow-lg text-center cursor-pointer"
+                                style={{ background: 'var(--gradient-warm)' }}
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Registrieren
+                            </button>
+                        </div>
+
+                        {/* Decorative Element */}
+                        <div className="absolute bottom-0 left-0 right-0 h-32 opacity-30 pointer-events-none" style={{ background: 'linear-gradient(to top, var(--sand), transparent)' }} />
+                    </div>
+                </div>
             )}
 
             {children}
