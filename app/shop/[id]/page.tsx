@@ -138,10 +138,10 @@ export default async function ShopProfile({
 
       {/* ========== MAIN CONTENT: 2-Column Grid ========== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-8 lg:gap-12 items-start">
 
           {/* ========== LEFT COLUMN: Sticky Sidebar ========== */}
-          <aside className="md:sticky md:top-8 md:self-start space-y-6">
+          <aside className="md:sticky md:top-20 md:self-start space-y-6">
 
             {/* Logo Card */}
             <div
