@@ -15,6 +15,46 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { hasFavorites, isLoaded } = useFavorites();
 
+    // Newsletter form state
+    const [newsletterEmail, setNewsletterEmail] = useState('');
+    const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [newsletterMessage, setNewsletterMessage] = useState('');
+
+    const handleNewsletterSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!newsletterEmail.trim()) {
+            setNewsletterStatus('error');
+            setNewsletterMessage('Bitte gib deine E-Mail-Adresse ein.');
+            return;
+        }
+
+        setNewsletterStatus('loading');
+        setNewsletterMessage('');
+
+        try {
+            const response = await fetch('/api/newsletter/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: newsletterEmail }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setNewsletterStatus('success');
+                setNewsletterMessage(data.message);
+                setNewsletterEmail('');
+            } else {
+                setNewsletterStatus('error');
+                setNewsletterMessage(data.error || 'Ein Fehler ist aufgetreten.');
+            }
+        } catch {
+            setNewsletterStatus('error');
+            setNewsletterMessage('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
+        }
+    };
+
     const navLinks = [
         { href: '/shops', label: 'Alle Märkte' },
         { href: '/offers', label: 'Angebote' },
@@ -265,22 +305,54 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                                 <p className="text-white/70 text-sm mb-4">
                                     Erhalte die besten Deals direkt in dein Postfach.
                                 </p>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="email"
-                                        placeholder="Deine E-Mail"
-                                        className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                                        style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.2)' }}
-                                    />
-                                    <button
-                                        className="px-4 py-2.5 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
-                                        style={{ background: 'var(--gradient-warm)', color: 'white' }}
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                {newsletterStatus === 'success' ? (
+                                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(107, 142, 122, 0.3)', color: '#7CC9A3' }}>
+                                        <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
-                                    </button>
-                                </div>
+                                        <span>{newsletterMessage}</span>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleNewsletterSubmit}>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="email"
+                                                placeholder="Deine E-Mail"
+                                                value={newsletterEmail}
+                                                onChange={(e) => {
+                                                    setNewsletterEmail(e.target.value);
+                                                    if (newsletterStatus === 'error') {
+                                                        setNewsletterStatus('idle');
+                                                        setNewsletterMessage('');
+                                                    }
+                                                }}
+                                                disabled={newsletterStatus === 'loading'}
+                                                className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 disabled:opacity-50"
+                                                style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={newsletterStatus === 'loading'}
+                                                className="px-4 py-2.5 rounded-xl font-bold text-sm hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 cursor-pointer disabled:cursor-not-allowed"
+                                                style={{ background: 'var(--gradient-warm)', color: 'white' }}
+                                            >
+                                                {newsletterStatus === 'loading' ? (
+                                                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
+                                        {newsletterStatus === 'error' && newsletterMessage && (
+                                            <p className="mt-2 text-xs" style={{ color: '#FF7F6B' }}>{newsletterMessage}</p>
+                                        )}
+                                    </form>
+                                )}
                             </div>
                         </div>
 

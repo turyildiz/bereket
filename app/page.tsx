@@ -62,14 +62,7 @@ export default async function Home() {
           <div className="grid lg:grid-cols-5 gap-8 items-center">
             {/* Left Content - Takes 3 columns */}
             <div className="lg:col-span-3">
-              {/* Location Badge */}
-              <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full mb-8 animate-fade-in-up backdrop-blur-md" style={{ background: 'rgba(255, 255, 255, 0.15)', border: '1px solid rgba(255, 255, 255, 0.25)' }}>
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#22C55E' }}></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#22C55E' }}></span>
-                </span>
-                <span className="text-sm font-semibold text-white">247 Angebote heute in Frankfurt</span>
-              </div>
+
 
               {/* Main Headline */}
               <h1
@@ -86,12 +79,7 @@ export default async function Home() {
               </h1>
 
               {/* Subheadline */}
-              <p
-                className="text-xl sm:text-2xl leading-relaxed mb-10 animate-fade-in-up max-w-xl"
-                style={{ color: 'rgba(255, 255, 255, 0.85)', animationDelay: '0.2s' }}
-              >
-                Frische Angebote von türkischen, arabischen & orientalischen Märkten – täglich neu für dich.
-              </p>
+
 
 
               {/* Search Bar with Tabs */}
@@ -283,59 +271,7 @@ export default async function Home() {
       {/* Latest Offers Section - Dynamic based on favorites */}
       <OffersSection />
 
-      {/* CTA Section - NEW */}
-      <section className="relative py-20 sm:py-28 overflow-hidden" style={{ background: 'var(--gradient-night)' }}>
-        {/* Decorative Elements */}
-        <div className="absolute inset-0 dot-pattern" style={{ opacity: 0.05 }}></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 opacity-20 blur-3xl animate-float" style={{ background: 'var(--saffron)' }}></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 opacity-20 blur-3xl animate-float" style={{ background: 'var(--terracotta)', animationDelay: '2s' }}></div>
 
-        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
-          <h2
-            className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 animate-fade-in-up"
-            style={{ fontFamily: 'var(--font-playfair)' }}
-          >
-            Bereit für frische <span className="text-gradient-warm">Deals</span>?
-          </h2>
-          <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-            Werde Teil unserer Community und verpasse nie wieder ein Angebot von deinem Lieblingsmarkt.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <button
-              className="btn-primary px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl inline-flex items-center justify-center gap-3 cursor-pointer"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Kostenlos registrieren
-            </button>
-            <button
-              className="px-10 py-5 rounded-2xl font-bold text-lg border-2 border-white/30 text-white hover:bg-white/10 transition-all inline-flex items-center justify-center gap-3 cursor-pointer"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              Für Shop-Besitzer
-            </button>
-          </div>
-
-          {/* Stats Row */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-            {[
-              { value: '50+', label: 'Partner-Shops' },
-              { value: '10K+', label: 'Aktive Nutzer' },
-              { value: '247', label: 'Angebote heute' },
-              { value: '4.9★', label: 'Bewertung' }
-            ].map((stat, idx) => (
-              <div key={idx} className="glass-card p-6 hover-scale cursor-default" style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                <div className="text-3xl font-black text-white mb-1" style={{ fontFamily: 'var(--font-playfair)' }}>{stat.value}</div>
-                <div className="text-sm text-white/70">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </main>
   );
 }
