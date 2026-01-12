@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import SearchMarketGrid from '@/app/components/SearchMarketGrid';
 
 interface SearchPageProps {
     searchParams: Promise<{
@@ -349,9 +350,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                    {matchingMarkets.map((market, idx) => (
-                                        <MarketCard key={market.id} market={market} index={idx} />
-                                    ))}
+                                    <SearchMarketGrid markets={matchingMarkets} />
                                 </div>
                             </div>
                         )}
@@ -371,9 +370,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                    {nearbyMarkets.map((market, idx) => (
-                                        <MarketCard key={market.id} market={market} index={idx} />
-                                    ))}
+                                    <SearchMarketGrid markets={nearbyMarkets} />
                                 </div>
                             </div>
                         )}
@@ -442,88 +439,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </section>
             )}
         </main>
-    );
-}
-
-// ============ MARKET CARD COMPONENT ============
-function MarketCard({ market, index }: { market: MarketType; index: number }) {
-    return (
-        <Link
-            href={`/shop/${market.id}`}
-            className="group relative rounded-3xl overflow-hidden cursor-pointer block transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 animate-scale-in"
-            style={{
-                background: 'white',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
-                animationDelay: `${index * 0.05}s`
-            }}
-        >
-            {/* Premium Badge */}
-            {market.is_premium && (
-                <div
-                    className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-full text-xs font-black shadow-lg flex items-center gap-1"
-                    style={{ background: 'var(--saffron)', color: 'white' }}
-                >
-                    ⭐ Premium
-                </div>
-            )}
-
-            {/* Image */}
-            <div className="relative aspect-[16/10] overflow-hidden">
-                <img
-                    src={market.header_url || 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=600'}
-                    alt={market.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </div>
-
-            {/* Content */}
-            <div className="p-6">
-                <div className="flex items-start gap-4">
-                    {/* Logo */}
-                    <div
-                        className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 shadow-lg -mt-10 relative z-10"
-                        style={{ background: 'white', border: '3px solid white' }}
-                    >
-                        {market.logo_url ? (
-                            <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                            <div
-                                className="w-full h-full flex items-center justify-center text-xl font-black text-white"
-                                style={{ background: 'var(--gradient-warm)' }}
-                            >
-                                {market.name.charAt(0)}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                        <h3
-                            className="font-bold text-lg group-hover:text-[var(--terracotta)] transition-colors duration-300 truncate"
-                            style={{ color: 'var(--charcoal)' }}
-                        >
-                            {market.name}
-                        </h3>
-                        <div className="flex items-center gap-1 text-sm" style={{ color: 'var(--warm-gray)' }}>
-                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            </svg>
-                            <span className="truncate">{market.zip_code} {market.city}</span>
-                        </div>
-                    </div>
-
-                    {/* Arrow */}
-                    <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shrink-0"
-                        style={{ background: 'var(--mint)' }}
-                    >
-                        <svg className="w-5 h-5" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </Link>
     );
 }
 

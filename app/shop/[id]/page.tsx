@@ -2,11 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ShopShareButton from './ShopShareButton';
-
-// Helper to format currency
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price);
-};
+import ShopOffersSection from './ShopOffersSection';
 
 export default async function ShopProfile({
   params
@@ -27,15 +23,7 @@ export default async function ShopProfile({
     return notFound();
   }
 
-  // 2. Fetch Market Offers
-  const { data: offers } = await supabase
-    .from('offers')
-    .select('*')
-    .eq('market_id', id)
-    .gt('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false });
-
-  // 3. Fetch Similar Markets (Regional Zone)
+  // 2. Fetch Similar Markets (Regional Zone)
   let similarMarketsQuery = supabase
     .from('markets')
     .select('id, name, city, zip_code, header_url, logo_url')
@@ -365,128 +353,7 @@ export default async function ShopProfile({
 
           {/* ========== RIGHT COLUMN: Offers ========== */}
           <div className="min-w-0">
-            {/* Offers Header */}
-            <div className="mb-8 animate-fade-in-up">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2
-                    className="text-2xl sm:text-3xl font-bold mb-2"
-                    style={{
-                      fontFamily: 'var(--font-playfair)',
-                      color: 'var(--charcoal)'
-                    }}
-                  >
-                    Aktuelle Angebote
-                  </h2>
-                  <p className="text-sm" style={{ color: 'var(--warm-gray)' }}>
-                    {offers && offers.length > 0 ? `${offers.length} Angebote verfügbar` : 'Keine aktuellen Angebote'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold cursor-default"
-                  style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(10px)', color: 'var(--warm-gray)', border: '1px solid rgba(255, 255, 255, 0.5)' }}>
-                  <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--cardamom)' }}></span>
-                  KI-aktualisiert
-                </div>
-              </div>
-            </div>
-
-            {/* Offers Grid */}
-            {offers && offers.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {offers.map((offer, idx) => (
-                  <div
-                    key={offer.id || idx}
-                    className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.8)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.5)',
-                      boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
-                      animationDelay: `${0.1 + idx * 0.1}s`
-                    }}
-                  >
-                    {/* Image */}
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
-                        alt={offer.product_name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5">
-                      <h3
-                        className="font-bold text-xl mb-2"
-                        style={{
-                          fontFamily: 'var(--font-playfair)',
-                          color: 'var(--charcoal)'
-                        }}
-                      >
-                        {offer.product_name}
-                      </h3>
-
-                      <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
-                        {offer.expires_at ? `Gültig bis ${new Date(offer.expires_at).toLocaleDateString('de-DE')}` : 'Nur solange Vorrat reicht.'}
-                      </p>
-
-                      <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
-                        <span
-                          className="text-2xl font-black"
-                          style={{ color: 'var(--terracotta)' }}
-                        >
-                          {typeof offer.price === 'number' ? formatPrice(offer.price) : offer.price}
-                        </span>
-                        <span className="text-xs px-3 py-1 rounded-full font-semibold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>
-                          Verfügbar
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* Empty State - Glassmorphism Card */
-              <div
-                className="text-center py-16 px-8 rounded-3xl animate-fade-in-up"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.7)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
-                }}
-              >
-                <div
-                  className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center text-3xl shadow-lg"
-                  style={{ background: 'var(--gradient-warm)' }}
-                >
-                  📦
-                </div>
-                <h3
-                  className="text-2xl font-bold mb-3"
-                  style={{
-                    fontFamily: 'var(--font-playfair)',
-                    color: 'var(--charcoal)'
-                  }}
-                >
-                  Keine Angebote verfügbar
-                </h3>
-                <p className="mb-6 text-lg" style={{ color: 'var(--warm-gray)' }}>
-                  Schauen Sie bald wieder vorbei!
-                </p>
-                <button
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 cursor-pointer"
-                  style={{ background: 'var(--charcoal)', color: 'white' }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  Benachrichtigung aktivieren
-                </button>
-              </div>
-            )}
+            <ShopOffersSection marketId={id} marketName={market.name} />
 
             {/* Similar Shops Section */}
             {similarMarkets && similarMarkets.length > 0 && (

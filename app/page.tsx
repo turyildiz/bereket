@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import HeroSearchBar from './components/HeroSearchBar';
+import MarketGridClient from './components/MarketGridClient';
+import MobileMarketScroll from './components/MobileMarketScroll';
+import OffersSection from './components/OffersSection';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -8,23 +11,15 @@ export default async function Home() {
   // Fetch top 6 premium markets
   const { data: premiumMarkets } = await supabase
     .from('markets')
-    .select('id, name, city, header_url, logo_url, about_text')
+    .select('id, name, city, header_url, logo_url, about_text, is_premium')
     .eq('is_premium', true)
-    .order('name', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(6);
 
   // Fetch newest markets (6 most recently created)
   const { data: newestMarkets } = await supabase
     .from('markets')
     .select('id, name, city, header_url, logo_url, about_text, is_premium')
-    .order('created_at', { ascending: false })
-    .limit(6);
-
-  // Fetch latest offers with market info
-  const { data: latestOffers } = await supabase
-    .from('offers')
-    .select('id, product_name, price, image_url, expires_at, market_id, markets(id, name)')
-    .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(6);
 
@@ -226,7 +221,7 @@ export default async function Home() {
               </p>
             </div>
             <Link
-              href="/shops"
+              href="/shops/premium"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:gap-4 cursor-pointer"
               style={{ background: 'var(--charcoal)', color: 'white' }}
             >
@@ -238,98 +233,7 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {premiumMarkets.map((market, idx) => {
-              // Truncate about_text to ~80 characters
-              const teaser = market.about_text
-                ? market.about_text.length > 80
-                  ? market.about_text.substring(0, 80).trim() + '...'
-                  : market.about_text
-                : `Entdecken Sie ${market.name} – Ihr Premium-Markt für frische Spezialitäten.`;
-
-              return (
-                <Link
-                  href={`/shop/${market.id}`}
-                  key={market.id}
-                  className="group relative rounded-3xl overflow-hidden cursor-pointer block animate-scale-in transition-transform duration-300 hover:scale-[1.03]"
-                  style={{
-                    animationDelay: `${idx * 0.1}s`,
-                    background: 'white',
-                    boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
-                  }}
-                >
-                  {/* Image Section */}
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
-                      src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
-                      alt={market.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-
-                    {/* Premium Badge - Top Right */}
-                    <div className="absolute top-4 right-4 badge-premium cursor-default shadow-lg">
-                      <svg className="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      Premium Partner
-                    </div>
-                  </div>
-
-                  {/* Content Section with Overlapping Logo */}
-                  <div className="relative p-6 pt-10">
-                    {/* Overlapping Logo - 60x60px, positioned half over image */}
-                    <div
-                      className="absolute -top-8 left-6 w-[60px] h-[60px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white"
-                      style={{ boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)' }}
-                    >
-                      {market.logo_url ? (
-                        <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
-                          {market.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Market Name */}
-                    <h3
-                      className="font-bold text-xl mb-2 truncate"
-                      style={{
-                        fontFamily: 'var(--font-playfair)',
-                        color: 'var(--charcoal)'
-                      }}
-                    >
-                      {market.name}
-                    </h3>
-
-                    {/* Teaser Text */}
-                    <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>
-                      {teaser}
-                    </p>
-
-                    {/* City with MapPin */}
-                    <div
-                      className="flex items-center justify-between pt-4 border-t"
-                      style={{ borderColor: 'var(--sand)' }}
-                    >
-                      <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
-                        <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--terracotta)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {market.city}
-                      </div>
-
-                      {/* Arrow indicator */}
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: 'var(--cream)' }}>
-                        <svg className="w-4 h-4" style={{ color: 'var(--terracotta)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            <MarketGridClient markets={premiumMarkets} variant="premium" />
           </div>
         </section>
       )}
@@ -355,7 +259,7 @@ export default async function Home() {
               </p>
             </div>
             <Link
-              href="/shops"
+              href="/shops/new"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:gap-4 cursor-pointer"
               style={{ background: 'var(--charcoal)', color: 'white' }}
             >
@@ -366,301 +270,18 @@ export default async function Home() {
             </Link>
           </div>
 
-          {/* Mobile: Horizontal Scroll | Desktop: 3-Column Grid */}
-          <div className="md:hidden flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {newestMarkets.map((market, idx) => {
-              const teaser = market.about_text
-                ? market.about_text.length > 100
-                  ? market.about_text.substring(0, 100).trim() + '...'
-                  : market.about_text
-                : `Willkommen bei ${market.name} – Ihr neuer Markt für frische Spezialitäten.`;
-
-              return (
-                <Link
-                  href={`/shop/${market.id}`}
-                  key={market.id}
-                  className="group relative rounded-3xl overflow-hidden cursor-pointer block shrink-0 snap-start w-[280px] transition-transform duration-300 active:scale-[0.98]"
-                  style={{
-                    background: 'white',
-                    boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
-                  }}
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
-                      src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
-                      alt={market.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {market.is_premium ? (
-                      <div className="absolute top-4 right-4 badge-premium cursor-default shadow-lg">Premium</div>
-                    ) : (
-                      <div className="absolute top-4 right-4 badge-new cursor-default shadow-lg">Neu</div>
-                    )}
-                  </div>
-                  <div className="relative p-5 pt-9">
-                    <div className="absolute -top-7 left-5 w-[54px] h-[54px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white">
-                      {market.logo_url ? (
-                        <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg font-bold text-white" style={{ background: 'var(--gradient-fresh)' }}>
-                          {market.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-lg mb-1 truncate" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
-                      {market.name}
-                    </h3>
-                    <p className="text-sm mb-3 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>{teaser}</p>
-                    <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--warm-gray)' }}>
-                      <svg className="w-4 h-4" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {market.city}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          {/* Mobile: Horizontal Scroll */}
+          <MobileMarketScroll markets={newestMarkets} />
 
           {/* Desktop: Standard Grid */}
           <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-8">
-            {newestMarkets.map((market, idx) => {
-              const teaser = market.about_text
-                ? market.about_text.length > 100
-                  ? market.about_text.substring(0, 100).trim() + '...'
-                  : market.about_text
-                : `Willkommen bei ${market.name} – Ihr neuer Markt für frische Spezialitäten.`;
-
-              return (
-                <Link
-                  href={`/shop/${market.id}`}
-                  key={market.id}
-                  className="group relative rounded-3xl overflow-hidden cursor-pointer block animate-scale-in transition-transform duration-300 hover:scale-[1.03]"
-                  style={{
-                    animationDelay: `${idx * 0.1}s`,
-                    background: 'white',
-                    boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)'
-                  }}
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
-                      src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
-                      alt={market.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                    {market.is_premium ? (
-                      <div className="absolute top-4 right-4 badge-premium cursor-default shadow-lg">
-                        <svg className="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        Premium Partner
-                      </div>
-                    ) : (
-                      <div className="absolute top-4 right-4 badge-new cursor-default shadow-lg">
-                        <svg className="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Neu
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative p-6 pt-10">
-                    <div className="absolute -top-8 left-6 w-[60px] h-[60px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white" style={{ boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)' }}>
-                      {market.logo_url ? (
-                        <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white" style={{ background: 'var(--gradient-fresh)' }}>
-                          {market.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-xl mb-2 truncate" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
-                      {market.name}
-                    </h3>
-                    <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--warm-gray)' }}>{teaser}</p>
-                    <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: 'var(--sand)' }}>
-                      <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
-                        <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {market.city}
-                      </div>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all" style={{ background: 'var(--mint)' }}>
-                        <svg className="w-4 h-4" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            <MarketGridClient markets={newestMarkets} variant="new" />
           </div>
         </section>
       )}
 
-      {/* Latest Offers Section - Enhanced */}
-      <section
-        className="relative py-20 sm:py-28 overflow-hidden grain-texture"
-        style={{ background: 'linear-gradient(180deg, var(--cream) 0%, #F4E4D7 100%)' }}
-      >
-        {/* Decorative Background */}
-        <div className="absolute top-20 right-0 w-96 h-96 opacity-10 blur-3xl animate-float" style={{ background: 'var(--saffron)' }}></div>
-        <div className="absolute bottom-20 left-0 w-96 h-96 opacity-10 blur-3xl animate-float" style={{ background: 'var(--terracotta)', animationDelay: '3s' }}></div>
-
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-            <div className="text-center md:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4" style={{ background: 'white', color: 'var(--terracotta)' }}>
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--terracotta)' }}></span>
-                <span className="text-sm font-bold">Live-Updates</span>
-              </div>
-              <h2
-                className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
-                style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
-              >
-                Neueste Angebote
-              </h2>
-              <p className="text-lg sm:text-xl" style={{ color: 'var(--warm-gray)' }}>
-                KI-erkannte Deals, frisch für dich.
-              </p>
-            </div>
-            <div className="flex flex-wrap justify-center md:justify-end gap-3">
-              <select
-                className="rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none cursor-pointer shadow-lg hover-scale"
-                style={{
-                  background: 'white',
-                  color: 'var(--charcoal)',
-                  border: '2px solid var(--sand)'
-                }}
-              >
-                <option>🗺️ Alle Städte</option>
-                <option>📍 Frankfurt</option>
-                <option>📍 Berlin</option>
-                <option>📍 München</option>
-              </select>
-              <select
-                className="rounded-2xl px-5 py-3 text-sm font-bold focus:outline-none cursor-pointer shadow-lg hover-scale"
-                style={{
-                  background: 'white',
-                  color: 'var(--charcoal)',
-                  border: '2px solid var(--sand)'
-                }}
-              >
-                <option>🏷️ Alle Kategorien</option>
-                <option>🥬 Gemüse</option>
-                <option>🍖 Fleisch</option>
-                <option>🧀 Milchprodukte</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {latestOffers && latestOffers.length > 0 ? (
-              latestOffers.map((offer, idx) => {
-                const marketData = offer.markets as unknown as { id: string; name: string } | null;
-                const marketName = marketData?.name || 'Lokaler Markt';
-                const expiresDate = new Date(offer.expires_at);
-                const daysLeft = Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-
-                return (
-                  <Link
-                    href={marketData ? `/shop/${marketData.id}` : '#'}
-                    key={offer.id}
-                    className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in block"
-                    style={{
-                      background: 'white',
-                      boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)',
-                      animationDelay: `${idx * 0.05}s`
-                    }}
-                  >
-                    {/* Image */}
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
-                        alt={offer.product_name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      {/* Expiry Badge */}
-                      {daysLeft <= 3 && (
-                        <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg" style={{ background: 'var(--terracotta)', color: 'white' }}>
-                          {daysLeft <= 0 ? 'Läuft heute ab' : `Noch ${daysLeft} Tag${daysLeft > 1 ? 'e' : ''}`}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6">
-                      <h3
-                        className="font-bold text-xl mb-2"
-                        style={{
-                          fontFamily: 'var(--font-playfair)',
-                          color: 'var(--charcoal)'
-                        }}
-                      >
-                        {offer.product_name}
-                      </h3>
-
-                      <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
-                        Gültig bis {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} bei {marketName}.
-                      </p>
-
-                      <div
-                        className="flex items-center justify-between pt-4 border-t"
-                        style={{ borderColor: 'var(--sand)' }}
-                      >
-                        <span
-                          className="text-2xl font-black"
-                          style={{ color: 'var(--terracotta)' }}
-                        >
-                          {offer.price}
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
-                            {marketName.charAt(0)}
-                          </div>
-                          <span className="text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
-                            {marketName}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-lg" style={{ color: 'var(--warm-gray)' }}>
-                  Aktuell keine Angebote verfügbar. Schau bald wieder vorbei!
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Load More Button */}
-          {latestOffers && latestOffers.length > 0 && (
-            <div className="mt-16 text-center">
-              <Link
-                href="/offers"
-                className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all cursor-pointer"
-                style={{
-                  background: 'var(--gradient-warm)',
-                  color: 'white'
-                }}
-              >
-                Alle Angebote ansehen
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Latest Offers Section - Dynamic based on favorites */}
+      <OffersSection />
 
       {/* CTA Section - NEW */}
       <section className="relative py-20 sm:py-28 overflow-hidden" style={{ background: 'var(--gradient-night)' }}>

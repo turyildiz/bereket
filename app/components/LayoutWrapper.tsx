@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useFavorites } from '@/hooks/useFavorites';
 
 interface LayoutWrapperProps {
     children: React.ReactNode;
@@ -12,6 +13,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     const pathname = usePathname();
     const isAdminRoute = pathname?.startsWith('/admin');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { hasFavorites, isLoaded } = useFavorites();
 
     const navLinks = [
         { href: '/shops', label: 'Alle Märkte' },
@@ -62,20 +64,26 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                             ))}
                         </div>
 
-                        {/* Actions - Hidden on mobile, only hamburger shown */}
+                        {/* Actions - "Meine Favoriten" link when favorites exist */}
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <button className="hidden lg:flex items-center gap-2 text-sm font-semibold hover:opacity-70 transition-opacity cursor-pointer" style={{ color: 'var(--warm-gray)' }}>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                Suchen
-                            </button>
-                            <button className="hidden lg:block text-sm font-semibold hover:opacity-70 transition-opacity cursor-pointer" style={{ color: 'var(--warm-gray)' }}>
-                                Anmelden
-                            </button>
-                            <button className="hidden lg:block rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all shrink-0 cursor-pointer" style={{ background: 'var(--gradient-warm)' }}>
-                                Registrieren
-                            </button>
+                            {/* Meine Favoriten Link - Only shown when LocalStorage has favorites */}
+                            {isLoaded && hasFavorites && (
+                                <Link
+                                    href="/favorites"
+                                    className="hidden lg:flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105 cursor-pointer shadow-lg"
+                                    style={{ background: 'var(--gradient-warm)', color: 'white' }}
+                                >
+                                    <svg
+                                        className="w-4 h-4"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                    </svg>
+                                    Meine Favoriten
+                                </Link>
+                            )}
 
                             {/* Mobile Menu Button (Hamburger) - Only element visible on mobile */}
                             <button
@@ -123,17 +131,24 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
                         {/* Navigation Links */}
                         <div className="px-6 py-4 space-y-2">
-                            {/* Suchen Button */}
-                            <button
-                                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-lg font-semibold transition-colors hover:bg-[var(--sand)] text-left cursor-pointer"
-                                style={{ color: 'var(--charcoal)' }}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                Suchen
-                            </button>
+                            {/* Meine Favoriten - Only shown when favorites exist */}
+                            {isLoaded && hasFavorites && (
+                                <Link
+                                    href="/favorites"
+                                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-lg font-semibold transition-colors hover:bg-[var(--sand)]"
+                                    style={{ color: 'var(--terracotta)' }}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <svg
+                                        className="w-5 h-5"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                    </svg>
+                                    Meine Favoriten
+                                </Link>
+                            )}
 
                             {/* Main Nav Links */}
                             {navLinks.map((link) => (
@@ -147,27 +162,6 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                                     {link.label}
                                 </Link>
                             ))}
-                        </div>
-
-                        {/* Divider */}
-                        <div className="mx-6 my-4 border-t" style={{ borderColor: 'var(--sand)' }} />
-
-                        {/* Auth Actions */}
-                        <div className="px-6 space-y-3">
-                            <button
-                                className="w-full px-4 py-3 rounded-xl text-lg font-semibold transition-colors hover:bg-[var(--sand)] text-left cursor-pointer"
-                                style={{ color: 'var(--charcoal)' }}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Anmelden
-                            </button>
-                            <button
-                                className="w-full px-6 py-4 rounded-xl font-bold text-white shadow-lg text-center cursor-pointer"
-                                style={{ background: 'var(--gradient-warm)' }}
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                Registrieren
-                            </button>
                         </div>
 
                         {/* Decorative Element */}
@@ -231,13 +225,18 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                             <div>
                                 <h4 className="font-bold mb-5 text-base text-white">Entdecken</h4>
                                 <ul className="space-y-3">
-                                    {['Alle Märkte', 'Aktuelle Angebote', 'Neue Shops', 'In deiner Nähe'].map((item, idx) => (
+                                    {[
+                                        { label: 'Alle Märkte', href: '/shops' },
+                                        { label: 'Aktuelle Angebote', href: '/offers' },
+                                        { label: 'Neue Shops', href: '/shops/new' },
+                                        { label: 'Meine Favoriten', href: '/favorites' },
+                                    ].map((item, idx) => (
                                         <li key={idx}>
-                                            <Link href="#" className="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-2 group">
+                                            <Link href={item.href} className="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-2 group">
                                                 <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                 </svg>
-                                                <span className="group-hover:translate-x-1 transition-transform">{item}</span>
+                                                <span className="group-hover:translate-x-1 transition-transform">{item.label}</span>
                                             </Link>
                                         </li>
                                     ))}
