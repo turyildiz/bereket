@@ -38,6 +38,7 @@ export default function OffersSection() {
             let query = supabase
                 .from('offers')
                 .select('id, product_name, price, image_url, expires_at, market_id, markets(id, name)')
+                .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
                 .order('created_at', { ascending: false });
 

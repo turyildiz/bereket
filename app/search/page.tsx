@@ -81,6 +81,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             .from('offers')
             .select('id, product_name, description, price, original_price, image_url, market_id, markets(name, city, zip_code)')
             .or(`product_name.ilike.%${q}%,description.ilike.%${q}%`)
+            .eq('status', 'live')
             .gt('expires_at', new Date().toISOString());
 
         const { data: productData } = await productQuery

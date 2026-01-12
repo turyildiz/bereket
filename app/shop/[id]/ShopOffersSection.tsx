@@ -48,6 +48,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                 .from('offers')
                 .select('*', { count: 'exact', head: true })
                 .eq('market_id', marketId)
+                .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString());
 
             setTotalCount(count);
@@ -57,6 +58,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                 .from('offers')
                 .select('id, product_name, price, image_url, expires_at, created_at')
                 .eq('market_id', marketId)
+                .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
                 .order('created_at', { ascending: false })
                 .range(0, INITIAL_LOAD - 1);
@@ -88,6 +90,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
             .from('offers')
             .select('id, product_name, price, image_url, expires_at, created_at')
             .eq('market_id', marketId)
+            .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: false })
             .range(start, end);

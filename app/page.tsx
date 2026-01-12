@@ -28,6 +28,7 @@ export default async function Home() {
     .from('offers')
     .select('id, product_name, price, image_url, market_id, markets!inner(id, name, city, is_premium)')
     .eq('markets.is_premium', true)
+    .eq('status', 'live')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(10);

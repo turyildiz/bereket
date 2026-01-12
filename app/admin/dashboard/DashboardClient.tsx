@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { MarketManager, TeamManagement, Toast } from './components';
+import { MarketManager, TeamManagement, OfferReview, Toast } from './components';
 import { Market, TeamMember, UserRole, ToastState } from './components/types';
 
 interface DashboardClientProps {
@@ -17,7 +17,7 @@ interface DashboardClientProps {
 }
 
 // Tab type for navigation
-type DashboardTab = 'markets' | 'team';
+type DashboardTab = 'markets' | 'offers' | 'team';
 
 export default function DashboardClient({
     initialMarkets,
@@ -185,6 +185,12 @@ export default function DashboardClient({
                             </svg>
                             Market Manager
                         </button>
+                        <button onClick={() => setActiveTab('offers')} className="px-5 py-2.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-2" style={{ background: activeTab === 'offers' ? 'var(--gradient-warm)' : 'var(--glass-bg)', color: activeTab === 'offers' ? 'white' : 'var(--charcoal)', fontFamily: 'var(--font-outfit)', border: activeTab === 'offers' ? 'none' : '1px solid var(--glass-border)' }}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                            Angebote Prüfen
+                        </button>
                         <button onClick={() => setActiveTab('team')} className="px-5 py-2.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-2" style={{ background: activeTab === 'team' ? 'var(--gradient-warm)' : 'var(--glass-bg)', color: activeTab === 'team' ? 'white' : 'var(--charcoal)', fontFamily: 'var(--font-outfit)', border: activeTab === 'team' ? 'none' : '1px solid var(--glass-border)' }}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -204,6 +210,11 @@ export default function DashboardClient({
                         initialTotalCount={initialTotalCount}
                         showToast={showToast}
                     />
+                )}
+
+                {/* Offer Review Tab Content - Superadmin Only */}
+                {activeTab === 'offers' && userRole === 'superadmin' && (
+                    <OfferReview showToast={showToast} />
                 )}
 
                 {/* Team Verwaltung Tab Content - Superadmin Only */}

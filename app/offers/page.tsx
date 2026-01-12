@@ -51,6 +51,7 @@ function OffersPageContent() {
             let countQuery = supabase
                 .from('offers')
                 .select('*', { count: 'exact', head: true })
+                .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString());
 
             // Filter by favorites if applicable
@@ -65,6 +66,7 @@ function OffersPageContent() {
             let dataQuery = supabase
                 .from('offers')
                 .select('id, product_name, price, image_url, expires_at, market_id, created_at, markets(id, name, city)')
+                .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
                 .order('created_at', { ascending: false })
                 .range(0, INITIAL_LOAD - 1);
@@ -101,6 +103,7 @@ function OffersPageContent() {
         let query = supabase
             .from('offers')
             .select('id, product_name, price, image_url, expires_at, market_id, created_at, markets(id, name, city)')
+            .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: false })
             .range(start, end);
