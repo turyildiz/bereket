@@ -18,7 +18,6 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     const navLinks = [
         { href: '/shops', label: 'Alle Märkte' },
         { href: '/offers', label: 'Angebote' },
-        { href: '/how-it-works', label: "So funktioniert's" },
         { href: '/for-shops', label: 'Für Shops' },
     ];
 
@@ -197,7 +196,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                                     </span>
                                 </div>
                                 <p className="leading-relaxed text-white/70 mb-6">
-                                    Dein lokaler Marktplatz für orientalische Spezialitäten. KI-gestützt, Community-getrieben.
+                                    Dein lokaler Marktplatz für orientalische Spezialitäten.
                                 </p>
 
                                 {/* Social Icons */}
@@ -247,13 +246,13 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                             <div>
                                 <h4 className="font-bold mb-5 text-base text-white">Für Shops</h4>
                                 <ul className="space-y-3">
-                                    {['Shop registrieren', 'So funktioniert es', 'Preise', 'Erfolgsgeschichten'].map((item, idx) => (
+                                    {[{ label: 'Shop registrieren', href: '/for-shops' }].map((item, idx) => (
                                         <li key={idx}>
-                                            <Link href="#" className="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-2 group">
+                                            <Link href={item.href} className="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-2 group">
                                                 <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                 </svg>
-                                                <span className="group-hover:translate-x-1 transition-transform">{item}</span>
+                                                <span className="group-hover:translate-x-1 transition-transform">{item.label}</span>
                                             </Link>
                                         </li>
                                     ))}
@@ -291,11 +290,15 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                                 © {new Date().getFullYear()} Bereket Market. Mit ❤️ für unsere Community.
                             </p>
                             <div className="flex gap-6">
-                                {['Impressum', 'Datenschutz', 'AGB'].map((item, idx) => (
-                                    <Link key={idx} href="#" className="text-sm text-white/50 hover:text-white transition-colors">
-                                        {item}
-                                    </Link>
-                                ))}
+                                <Link href="/impressum" className="text-sm text-white/50 hover:text-white transition-colors">
+                                    Impressum
+                                </Link>
+                                <Link href="/datenschutz" className="text-sm text-white/50 hover:text-white transition-colors">
+                                    Datenschutz
+                                </Link>
+                                <Link href="/agb" className="text-sm text-white/50 hover:text-white transition-colors">
+                                    AGB
+                                </Link>
                             </div>
                         </div>
                     </div>
