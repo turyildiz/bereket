@@ -6,8 +6,9 @@ import { createClient } from '@/utils/supabase/client';
 interface DraftOffer {
     id: string;
     product_name: string;
-    ai_description: string | null;
+    description: string | null;
     price: string;
+    unit: string | null;
     original_price: string | null;
     image_url: string | null;
     expires_at: string;
@@ -36,7 +37,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         try {
             const { data, error } = await supabase
                 .from('offers')
-                .select('id, product_name, ai_description, price, original_price, image_url, expires_at, created_at, market_id, markets(id, name, city)')
+                .select('id, product_name, description, price, unit, original_price, image_url, expires_at, created_at, market_id, markets(id, name, city)')
                 .eq('status', 'draft')
                 .order('created_at', { ascending: false });
 
@@ -142,11 +143,11 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                                 style={{ border: '2px solid rgba(230, 168, 69, 0.3)' }}
                             >
                                 {/* Image */}
-                                <div className="relative h-40">
+                                <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
                                     <img
                                         src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                                         alt={offer.product_name}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-contain"
                                     />
                                     <div
                                         className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold"
@@ -164,28 +165,20 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                                     </h4>
 
                                     {/* AI Description */}
-                                    {offer.ai_description && (
-                                        <div className="p-3 rounded-xl" style={{ background: 'rgba(230, 168, 69, 0.1)' }}>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--saffron)' }}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                                </svg>
-                                                <span className="text-xs font-semibold" style={{ color: 'var(--saffron)', fontFamily: 'var(--font-outfit)' }}>KI-Beschreibung</span>
-                                            </div>
-                                            <p className="text-sm" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>
-                                                {offer.ai_description}
-                                            </p>
-                                        </div>
+                                    {offer.description && (
+                                        <p className="text-sm" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                            {offer.description}
+                                        </p>
                                     )}
 
-                                    {/* Price */}
-                                    <div className="flex items-center gap-3">
+                                    {/* Price with Unit */}
+                                    <div className="flex items-baseline gap-2">
                                         <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>
-                                            {offer.price}
+                                            {offer.price} €
                                         </span>
-                                        {offer.original_price && (
-                                            <span className="text-sm line-through" style={{ color: 'var(--warm-gray)' }}>
-                                                {offer.original_price}
+                                        {offer.unit && (
+                                            <span className="text-sm" style={{ color: 'var(--warm-gray)' }}>
+                                                / {offer.unit}
                                             </span>
                                         )}
                                     </div>

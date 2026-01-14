@@ -9,6 +9,8 @@ interface Offer {
     id: string;
     product_name: string;
     price: string;
+    unit?: string | null;
+    description?: string | null;
     image_url: string | null;
     expires_at: string;
     market_id: string;
@@ -37,7 +39,7 @@ export default function OffersSection() {
 
             let query = supabase
                 .from('offers')
-                .select('id, product_name, price, image_url, expires_at, market_id, markets(id, name)')
+                .select('id, product_name, price, unit, description, image_url, expires_at, market_id, markets(id, name)')
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
                 .order('created_at', { ascending: false });
@@ -151,11 +153,11 @@ export default function OffersSection() {
                                         }}
                                     >
                                         {/* Image */}
-                                        <div className="relative aspect-[4/3] overflow-hidden">
+                                        <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
                                             <img
                                                 src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                                                 alt={offer.product_name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                                             />
                                             {/* Expiry Badge */}
                                             {daysLeft <= 3 && (
@@ -177,7 +179,14 @@ export default function OffersSection() {
                                                 {offer.product_name}
                                             </h3>
 
-                                            <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
+                                            {/* AI-generated description */}
+                                            {offer.description && (
+                                                <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>
+                                                    {offer.description}
+                                                </p>
+                                            )}
+
+                                            <p className="text-xs mb-4" style={{ color: 'var(--warm-gray)', opacity: 0.8 }}>
                                                 Gültig bis {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} bei {marketName}.
                                             </p>
 
@@ -185,12 +194,19 @@ export default function OffersSection() {
                                                 className="flex items-center justify-between pt-4 border-t"
                                                 style={{ borderColor: 'var(--sand)' }}
                                             >
-                                                <span
-                                                    className="text-2xl font-black"
-                                                    style={{ color: 'var(--terracotta)' }}
-                                                >
-                                                    {offer.price}
-                                                </span>
+                                                <div>
+                                                    <span
+                                                        className="text-2xl font-black"
+                                                        style={{ color: 'var(--terracotta)' }}
+                                                    >
+                                                        {offer.price} €
+                                                    </span>
+                                                    {offer.unit && (
+                                                        <span className="text-sm ml-1" style={{ color: 'var(--warm-gray)' }}>
+                                                            / {offer.unit}
+                                                        </span>
+                                                    )}
+                                                </div>
 
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>

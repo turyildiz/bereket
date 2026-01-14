@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getWhatsAppMediaUrl } from './media';
+import { analyzeOffer } from '@/lib/ai';
 
 // Create Supabase client for database lookups
 const supabase = createClient(
@@ -165,13 +166,27 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Analyze the offer with AI before saving
+        const messageText = caption || content || '';
+        console.log('Analyzing offer with AI...');
+
+        const aiAnalysis = await analyzeOffer(messageText, imageUrl || undefined);
+
+        if (aiAnalysis) {
+            console.log('AI Analysis complete:', aiAnalysis);
+        } else {
+            console.log('AI Analysis failed, using fallback values');
+        }
+
         const { error: insertError } = await adminClient
             .from('offers')
             .insert({
                 market_id: market.id,
-                product_name: productName,
-                description: 'WhatsApp Draft',
-                price: 0,
+                product_name: aiAnalysis?.product_name || productName,
+                description: aiAnalysis?.description || 'WhatsApp Draft',
+                price: aiAnalysis?.price ? parseFloat(aiAnalysis.price) : 0,
+                unit: aiAnalysis?.unit || 'Stück',
+                ai_category: aiAnalysis?.ai_category || null,
                 expires_at: expiresAt.toISOString(),
                 status: 'draft',
                 image_url: imageUrl,

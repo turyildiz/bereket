@@ -7,6 +7,8 @@ interface Offer {
     id: string;
     product_name: string;
     price: string | number;
+    unit?: string | null;
+    description?: string | null;
     image_url: string | null;
     expires_at: string;
     created_at: string;
@@ -56,7 +58,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
             // Fetch initial batch
             const { data, error } = await supabase
                 .from('offers')
-                .select('id, product_name, price, image_url, expires_at, created_at')
+                .select('id, product_name, price, unit, description, image_url, expires_at, created_at')
                 .eq('market_id', marketId)
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
@@ -88,7 +90,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
 
         const { data, error } = await supabase
             .from('offers')
-            .select('id, product_name, price, image_url, expires_at, created_at')
+            .select('id, product_name, price, unit, description, image_url, expires_at, created_at')
             .eq('market_id', marketId)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
@@ -183,11 +185,11 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                                 }}
                             >
                                 {/* Image */}
-                                <div className="relative aspect-[4/3] overflow-hidden">
+                                <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
                                     <img
                                         src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
                                         alt={offer.product_name}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                                     />
                                 </div>
 
@@ -203,25 +205,33 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                                         {offer.product_name}
                                     </h3>
 
-                                    <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
+                                    {/* AI-generated description */}
+                                    {offer.description && (
+                                        <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>
+                                            {offer.description}
+                                        </p>
+                                    )}
+
+                                    <p className="text-xs mb-4" style={{ color: 'var(--warm-gray)', opacity: 0.8 }}>
                                         {offer.expires_at
                                             ? `Gültig bis ${new Date(offer.expires_at).toLocaleDateString('de-DE')}`
                                             : 'Nur solange Vorrat reicht.'}
                                     </p>
 
                                     <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
-                                        <span
-                                            className="text-2xl font-black"
-                                            style={{ color: 'var(--terracotta)' }}
-                                        >
-                                            {formatPrice(offer.price)}
-                                        </span>
-                                        <span
-                                            className="text-xs px-3 py-1 rounded-full font-semibold"
-                                            style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}
-                                        >
-                                            Verfügbar
-                                        </span>
+                                        <div>
+                                            <span
+                                                className="text-2xl font-black"
+                                                style={{ color: 'var(--terracotta)' }}
+                                            >
+                                                {typeof offer.price === 'number' ? offer.price.toFixed(2) : offer.price} €
+                                            </span>
+                                            {offer.unit && (
+                                                <span className="text-sm ml-1" style={{ color: 'var(--warm-gray)' }}>
+                                                    / {offer.unit}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
