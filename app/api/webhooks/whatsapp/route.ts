@@ -99,10 +99,6 @@ export async function POST(request: NextRequest) {
     if (market) {
         console.log('Message recognized from: ' + market.name);
 
-        // Create a draft offer for the recognized market
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-
         // Determine product_name based on message type
         let productName: string;
         if (type === 'image') {
@@ -178,6 +174,20 @@ export async function POST(request: NextRequest) {
             console.log('AI Analysis failed, using fallback values');
         }
 
+        // Calculate expiration date (AI-extracted or default 7 days)
+        let expiresAtDate: Date;
+        if (aiAnalysis?.expires_at) {
+            expiresAtDate = new Date(aiAnalysis.expires_at);
+            // Validate the date is in the future
+            if (expiresAtDate <= new Date()) {
+                expiresAtDate = new Date();
+                expiresAtDate.setDate(expiresAtDate.getDate() + 7);
+            }
+        } else {
+            expiresAtDate = new Date();
+            expiresAtDate.setDate(expiresAtDate.getDate() + 7);
+        }
+
         const { error: insertError } = await adminClient
             .from('offers')
             .insert({
@@ -187,7 +197,7 @@ export async function POST(request: NextRequest) {
                 price: aiAnalysis?.price ? parseFloat(aiAnalysis.price) : 0,
                 unit: aiAnalysis?.unit || 'Stück',
                 ai_category: aiAnalysis?.ai_category || null,
-                expires_at: expiresAt.toISOString(),
+                expires_at: expiresAtDate.toISOString(),
                 status: 'draft',
                 image_url: imageUrl,
                 raw_whatsapp_data: body

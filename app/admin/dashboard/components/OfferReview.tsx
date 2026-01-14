@@ -9,7 +9,6 @@ interface DraftOffer {
     description: string | null;
     price: string;
     unit: string | null;
-    original_price: string | null;
     image_url: string | null;
     expires_at: string;
     created_at: string;
@@ -37,7 +36,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         try {
             const { data, error } = await supabase
                 .from('offers')
-                .select('id, product_name, description, price, unit, original_price, image_url, expires_at, created_at, market_id, markets(id, name, city)')
+                .select('id, product_name, description, price, unit, image_url, expires_at, created_at, market_id, markets(id, name, city)')
                 .eq('status', 'draft')
                 .order('created_at', { ascending: false });
 

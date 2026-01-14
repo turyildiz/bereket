@@ -29,7 +29,6 @@ type OfferWithMarket = {
     product_name: string;
     description?: string | null;
     price: string;
-    original_price?: string;
     image_url: string | null;
     market_id: string;
     markets: {
@@ -79,7 +78,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         // Search products
         let productQuery = supabase
             .from('offers')
-            .select('id, product_name, description, price, original_price, image_url, market_id, markets(name, city, zip_code)')
+            .select('id, product_name, description, price, image_url, market_id, markets(name, city, zip_code)')
             .or(`product_name.ilike.%${q}%,description.ilike.%${q}%`)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString());
@@ -446,7 +445,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 // ============ OFFER CARD COMPONENT ============
 function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) {
     const market = offer.markets;
-    const hasDiscount = !!offer.original_price;
 
     return (
         <Link
@@ -467,27 +465,12 @@ function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                {/* Discount Badge */}
-                {hasDiscount && (
-                    <div
-                        className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-black shadow-lg"
-                        style={{ background: 'var(--terracotta)', color: 'white' }}
-                    >
-                        ANGEBOT
-                    </div>
-                )}
-
                 {/* Price */}
                 <div className="absolute top-4 right-4 px-4 py-2 rounded-2xl shadow-lg" style={{ background: 'white' }}>
                     <div className="flex items-baseline gap-2">
                         <span className="text-xl font-black" style={{ color: 'var(--cardamom)' }}>
                             {offer.price}
                         </span>
-                        {hasDiscount && (
-                            <span className="text-xs line-through" style={{ color: 'var(--warm-gray)' }}>
-                                {offer.original_price}
-                            </span>
-                        )}
                     </div>
                 </div>
             </div>

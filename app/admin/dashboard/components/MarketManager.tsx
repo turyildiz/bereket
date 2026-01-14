@@ -465,15 +465,15 @@ export default function MarketManager({
         }
 
         const sampleOffers = [
-            { market_id: insertedMarkets[0].id, product_name: 'Frische Granatäpfel', price: '1.49€', original_price: '2.49€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[0].id, product_name: 'Türkischer Honig', price: '8.99€', original_price: '12.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[0].id, product_name: 'Fladenbrot 3er Pack', price: '1.99€', original_price: '2.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[1].id, product_name: 'Sucuk 500g', price: '5.99€', original_price: '7.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[1].id, product_name: 'Weißer Käse', price: '4.49€', original_price: '5.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[1].id, product_name: 'Oliven Mix 1kg', price: '6.99€', original_price: '9.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1593001874117-c99c800e3eb5?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[2].id, product_name: 'Baklava 1kg', price: '12.99€', original_price: '18.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1519676867240-f03562e64548?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[2].id, product_name: 'Ayran 10er Pack', price: '3.99€', original_price: '5.49€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[2].id, product_name: 'Gewürzmischung Köfte', price: '2.99€', original_price: '4.49€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[0].id, product_name: 'Frische Granatäpfel', price: '1.49€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[0].id, product_name: 'Türkischer Honig', price: '8.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[0].id, product_name: 'Fladenbrot 3er Pack', price: '1.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[1].id, product_name: 'Sucuk 500g', price: '5.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[1].id, product_name: 'Weißer Käse', price: '4.49€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[1].id, product_name: 'Oliven Mix 1kg', price: '6.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1593001874117-c99c800e3eb5?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[2].id, product_name: 'Baklava 1kg', price: '12.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1519676867240-f03562e64548?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[2].id, product_name: 'Ayran 10er Pack', price: '3.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&h=300&fit=crop' },
+            { market_id: insertedMarkets[2].id, product_name: 'Gewürzmischung Köfte', price: '2.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&h=300&fit=crop' },
         ];
 
         const { error: offerError } = await supabase

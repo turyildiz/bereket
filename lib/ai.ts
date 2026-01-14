@@ -13,6 +13,7 @@ export interface OfferAnalysis {
     unit: string;
     description: string;
     ai_category: string;
+    expires_at: string;
 }
 
 /**
@@ -23,6 +24,11 @@ export interface OfferAnalysis {
  */
 export async function analyzeOffer(caption: string, imageUrl?: string): Promise<OfferAnalysis | null> {
     try {
+        // Get today's date for expiry calculation
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const dayOfWeek = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][today.getDay()];
+
         const systemPrompt = `You are an assistant for a supermarket. Given a WhatsApp message caption and an image, return a JSON object with the following fields:
 
 - "product_name": A clean product name in German (e.g., "Zitronen", "Rinderhackfleisch"). Do NOT include quantity or price in the name.
@@ -44,6 +50,17 @@ UNIT EXTRACTION EXAMPLES:
 - "description": A short, appetizing one-sentence description in German that would make customers want to buy the product.
 
 - "ai_category": A category for the product. Use one of these: "Obst & Gemüse", "Fleisch & Wurst", "Milchprodukte", "Backwaren", "Getränke", "Süßigkeiten", "Tiefkühl", "Konserven", "Gewürze", "Haushalt", "Sonstiges"
+
+- "expires_at": The expiration date in YYYY-MM-DD format. TODAY is ${todayStr} (${dayOfWeek}). Extract the validity period from the message.
+
+EXPIRATION DATE EXAMPLES:
+- "gültig eine Woche" → expires_at: calculate 7 days from today
+- "bis Samstag" → expires_at: date of the upcoming Saturday
+- "nur heute" → expires_at: today's date
+- "3 Tage gültig" → expires_at: calculate 3 days from today
+- "bis Sonntag" → expires_at: date of the upcoming Sunday
+- "diese Woche" → expires_at: upcoming Sunday
+- If NO time/validity is mentioned → expires_at: 7 days from today (DEFAULT)
 
 Return ONLY the raw JSON object. Do NOT use markdown code blocks, backticks, or any preamble like "Here is your JSON". Start your response with { and end it with }.`;
 
