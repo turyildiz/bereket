@@ -69,6 +69,50 @@ export async function POST(request: NextRequest) {
     const from = message.from; // Sender's phone number
     const type = message.type; // 'text', 'image', etc.
 
+    // AUTHORIZATION CHECK: Verify sender is from an authorized market
+    // This happens BEFORE deduplication and any AI processing to prevent costs
+    const { data: market, error: marketError } = await supabase
+        .from('markets')
+        .select('id, name')
+        .contains('whatsapp_numbers', [from])
+        .single();
+
+    if (!market) {
+        console.log('Unauthorized number: ' + from);
+
+        // Send WhatsApp reply to unauthorized sender
+        try {
+            const response = await fetch(`https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    recipient_type: 'individual',
+                    to: from,
+                    type: 'text',
+                    text: {
+                        preview_url: false,
+                        body: "🚫 Zugriff verweigert: Dieser WhatsApp-Service ist registrierten Ladenbesitzern vorbehalten.\n\nWenn Sie Partner sind und glauben, dass dies ein Fehler ist, kontaktieren Sie bitte den Support. Wenn Sie beitreten möchten, besuchen Sie unsere Website: http://www.bereket.market"
+                    }
+                })
+            });
+
+            const responseData = await response.json();
+            console.log('META RESPONSE BODY:', JSON.stringify(responseData, null, 2)); // This reveals the real error
+            console.log('Sent access denied message to:', from);
+        } catch (replyError) {
+            console.error('Error sending WhatsApp reply:', replyError);
+        }
+
+        // Return 200 OK to prevent Meta retries
+        return new Response('Success', { status: 200 });
+    }
+
+    console.log('Message recognized from authorized market: ' + market.name);
+
     // DEDUPLICATION CHECK: Check if this message was already processed
     const { data: existingOffer } = await adminClient
         .from('offers')
@@ -100,23 +144,6 @@ export async function POST(request: NextRequest) {
             console.log('New Message from:', from, 'Type:', type);
             if (content) console.log('  Content:', content);
             if (caption) console.log('  Caption:', caption);
-
-            // Database lookup: Check if the sender is from an authorized market
-            const { data: market, error } = await supabase
-                .from('markets')
-                .select('id, name')
-                .contains('whatsapp_numbers', [from])
-                .single();
-
-            if (error && error.code !== 'PGRST116') {
-                // Log actual database errors (not "no rows found")
-                console.error('Database lookup error:', error);
-            }
-
-            if (!market) {
-                console.log('Unauthorized number: ' + from);
-                return;
-            }
 
             console.log('Message recognized from: ' + market.name);
 
