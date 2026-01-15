@@ -1,123 +1,127 @@
 import OpenAI from 'openai';
 
-// Initialize OpenAI client configured for OpenRouter
+// Initialize OpenAI client with OpenRouter
 const openai = new OpenAI({
     apiKey: process.env.OPENROUTER_API_KEY,
-    baseURL: 'https://openrouter.ai/api/v1'
+    baseURL: 'https://openrouter.ai/api/v1',
 });
 
-// Type definition for the AI response
-export interface OfferAnalysis {
+interface AnalyzeOfferResult {
     product_name: string;
     price: string;
     unit: string;
     description: string;
     ai_category: string;
-    expires_at: string;
+    is_image_professional: boolean;
 }
 
 /**
- * Analyze a WhatsApp offer message using AI
- * @param caption - The text caption from the WhatsApp message
- * @param imageUrl - Optional URL to the product image
- * @returns Parsed offer data with product_name, price, description, and ai_category
+ * Analyzes a WhatsApp caption and optional image to extract product information
+ * @param caption - The WhatsApp message caption
+ * @param imageUrl - Optional URL of the product image
+ * @returns Structured product information
  */
-export async function analyzeOffer(caption: string, imageUrl?: string): Promise<OfferAnalysis | null> {
+export async function analyzeOffer(
+    caption: string,
+    imageUrl?: string
+): Promise<AnalyzeOfferResult> {
     try {
-        // Get today's date for expiry calculation
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        const dayOfWeek = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][today.getDay()];
-
-        const systemPrompt = `You are an assistant for a supermarket. Given a WhatsApp message caption and an image, return a JSON object with the following fields:
-
-- "product_name": A clean product name in German (e.g., "Zitronen", "Rinderhackfleisch"). Do NOT include quantity or price in the name.
-
-- "price": The numerical price as a CLEAN NUMBER STRING only (e.g., "0.38", "1.99", "4.99"). Extract ONLY the number, no currency symbols or units.
-
-- "unit": Your PRIMARY GOAL is to extract the EXACT unit the user mentioned. Look carefully for words like "kg", "Gramm", "g", "Liter", "L", "Bund", "Packung", "Stück", or quantity+unit combinations near the price. Include the quantity if specified.
-
-UNIT EXTRACTION EXAMPLES:
-- "Ingwer 100 Gramm 0.38€" → unit: "100 Gramm"
-- "Orangen 1.99€ kg" → unit: "kg"
-- "Zitronen 3 Stück 1.00" → unit: "3 Stück"
-- "Tomaten 500g 2.49" → unit: "500g"
-- "Petersilie 1 Bund 0.99" → unit: "Bund"
-- "Milch 1L 1.29" → unit: "1L"
-- "Äpfel 2kg 3.99" → unit: "2kg"
-- "Milch 1.20" → unit: "Stück" (DEFAULT only if absolutely NO unit is found)
-
-- "description": A short, appetizing one-sentence description in German that would make customers want to buy the product.
-
-- "ai_category": A category for the product. Use one of these: "Obst & Gemüse", "Fleisch & Wurst", "Milchprodukte", "Backwaren", "Getränke", "Süßigkeiten", "Tiefkühl", "Konserven", "Gewürze", "Haushalt", "Sonstiges"
-
-- "expires_at": The expiration date in YYYY-MM-DD format. TODAY is ${todayStr} (${dayOfWeek}). Extract the validity period from the message.
-
-EXPIRATION DATE EXAMPLES:
-- "gültig eine Woche" → expires_at: calculate 7 days from today
-- "bis Samstag" → expires_at: date of the upcoming Saturday
-- "nur heute" → expires_at: today's date
-- "3 Tage gültig" → expires_at: calculate 3 days from today
-- "bis Sonntag" → expires_at: date of the upcoming Sunday
-- "diese Woche" → expires_at: upcoming Sunday
-- If NO time/validity is mentioned → expires_at: 7 days from today (DEFAULT)
-
-Return ONLY the raw JSON object. Do NOT use markdown code blocks, backticks, or any preamble like "Here is your JSON". Start your response with { and end it with }.`;
-
-
-        // Build the message content based on whether we have an image
-        const userContent: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
+        const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
             {
-                type: 'text',
-                text: `Caption: ${caption}`
-            }
+                role: 'system',
+                content: `You are an assistant for Sila Markt. Analyze the WhatsApp caption and image. Return a JSON object with the following fields:
+- product_name: Clean product name (e.g., "Äpfel" not "Äpfel!!!")
+- price: Numerical price as string (e.g., "2.99")
+- unit: Unit of measurement (e.g., "kg", "Stück", "Bund", "Packung")
+- description: An appetizing German sentence describing the product
+- ai_category: Product category (e.g., "Obst & Gemüse", "Fleisch & Wurst", "Backwaren", "Milchprodukte", "Getränke")
+- is_image_professional: Boolean - true ONLY if the photo is a professional product shot on clean background. False if it's a shelf photo, blurry, has text overlays, or is missing.`,
+            },
         ];
 
-        // Add image if provided
+        // Add user message with image if provided
         if (imageUrl) {
-            userContent.push({
-                type: 'image_url',
-                image_url: {
-                    url: imageUrl
-                }
+            messages.push({
+                role: 'user',
+                content: [
+                    { type: 'text', text: caption },
+                    { type: 'image_url', image_url: { url: imageUrl } },
+                ],
+            });
+        } else {
+            messages.push({
+                role: 'user',
+                content: caption,
             });
         }
 
         const response = await openai.chat.completions.create({
-            model: 'google/gemini-2.0-flash-001',
-            messages: [
-                {
-                    role: 'system',
-                    content: systemPrompt
-                },
-                {
-                    role: 'user',
-                    content: userContent
-                }
-            ],
+            model: 'google/gemini-3-flash-preview',
+            messages,
             response_format: { type: 'json_object' },
-            temperature: 0.3, // Lower temperature for more consistent parsing
-            max_tokens: 500
+            temperature: 0.3,
         });
 
         const content = response.choices[0]?.message?.content;
-
         if (!content) {
-            console.error('No content in AI response');
+            throw new Error('No response from AI');
+        }
+
+        const result = JSON.parse(content) as AnalyzeOfferResult;
+        return result;
+    } catch (error) {
+        console.error('Error analyzing offer:', error);
+        throw error;
+    }
+}
+
+/**
+ * Generates a professional product image using AI
+ * @param productName - Name of the product to generate image for
+ * @returns URL of the generated image (including Base64 data URLs) or null if failed
+ */
+export async function generateProductImage(
+    productName: string
+): Promise<string | null> {
+    try {
+        // @ts-ignore - OpenRouter-specific parameter for image generation
+        const response = await openai.chat.completions.create({
+            model: 'bytedance-seed/seedream-4.5',
+            messages: [
+                {
+                    role: 'user',
+                    content: `Generate a professional, high-quality studio photograph of ${productName} on a clean, light, minimalist background. 8k resolution, food photography style. No text.`,
+                },
+            ],
+            // @ts-ignore - OpenRouter-specific parameter
+            modalities: ['image', 'text'],
+        });
+
+        // Gemini on OpenRouter returns images in the message.images array
+        const message = response.choices[0]?.message;
+
+        // @ts-ignore - OpenRouter-specific response structure
+        const images = message?.images;
+
+        if (!images || images.length === 0) {
+            console.log('No images returned from Gemini');
             return null;
         }
 
-        // Clean the response string (remove any potential markdown artifacts)
-        const cleanContent = content.replace(/```json|```/g, '').trim();
+        // Try multiple possible response structures
+        // @ts-ignore
+        const imageUrl = images[0]?.url || images[0]?.image_url?.url || images[0];
 
-        // Parse the JSON response
-        const parsed = JSON.parse(cleanContent) as OfferAnalysis;
+        if (imageUrl && typeof imageUrl === 'string') {
+            // Handle both Base64 data URLs (data:image/png;base64,...) and regular URLs
+            console.log('Image generated successfully:', imageUrl.substring(0, 50) + '...');
+            return imageUrl;
+        }
 
-        console.log('AI Analysis:', parsed);
-        return parsed;
-
+        console.log('Image URL not found in expected format');
+        return null;
     } catch (error) {
-        console.error('Error analyzing offer with AI:', error);
+        console.error('Error generating product image:', error);
         return null;
     }
 }

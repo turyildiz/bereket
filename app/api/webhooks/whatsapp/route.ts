@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getWhatsAppMediaUrl } from './media';
-import { analyzeOffer } from '@/lib/ai';
+import { analyzeOffer, generateProductImage } from '@/lib/ai';
 
 // Create Supabase client for database lookups
 const supabase = createClient(
@@ -65,152 +65,241 @@ export async function POST(request: NextRequest) {
     }
 
     const message = messages[0];
+    const messageId = message.id; // WhatsApp message ID (wamid)
     const from = message.from; // Sender's phone number
     const type = message.type; // 'text', 'image', etc.
 
-    let content: string | null = null;
-    let caption: string | null = null;
-    let imageId: string | null = null;
-
-    if (type === 'text') {
-        content = message.text?.body;
-    } else if (type === 'image') {
-        imageId = message.image?.id; // Image ID for later retrieval
-        caption = message.image?.caption || null;
-        console.log('Image ID detected: ' + imageId);
-    }
-
-    console.log('New Message from:', from, 'Type:', type);
-    if (content) console.log('  Content:', content);
-    if (caption) console.log('  Caption:', caption);
-
-    // Database lookup: Check if the sender is from an authorized market
-    const { data: market, error } = await supabase
-        .from('markets')
-        .select('id, name')
-        .contains('whatsapp_numbers', [from])
+    // DEDUPLICATION CHECK: Check if this message was already processed
+    const { data: existingOffer } = await adminClient
+        .from('offers')
+        .select('id')
+        .eq('message_id', messageId)
         .single();
 
-    if (error && error.code !== 'PGRST116') {
-        // Log actual database errors (not "no rows found")
-        console.error('Database lookup error:', error);
+    if (existingOffer) {
+        console.log(`Message ${messageId} already processed, skipping duplicate`);
+        return new Response('Success', { status: 200 });
     }
 
-    if (market) {
-        console.log('Message recognized from: ' + market.name);
+    // IMMEDIATE 200 OK: Send response to Meta immediately to prevent timeout/retry
+    // Process the message in the background
+    void (async () => {
+        try {
+            let content: string | null = null;
+            let caption: string | null = null;
+            let imageId: string | null = null;
 
-        // Determine product_name based on message type
-        let productName: string;
-        if (type === 'image') {
-            productName = caption || 'WhatsApp Bild';
-        } else {
-            productName = content || 'WhatsApp Nachricht';
-        }
+            if (type === 'text') {
+                content = message.text?.body;
+            } else if (type === 'image') {
+                imageId = message.image?.id; // Image ID for later retrieval
+                caption = message.image?.caption || null;
+                console.log('Image ID detected: ' + imageId);
+            }
 
-        // Handle image download and storage
-        let imageUrl: string | null = null;
+            console.log('New Message from:', from, 'Type:', type);
+            if (content) console.log('  Content:', content);
+            if (caption) console.log('  Caption:', caption);
 
-        if (type === 'image' && imageId) {
-            try {
-                // Step 1: Get the temporary download URL from Meta
-                const metaDownloadUrl = await getWhatsAppMediaUrl(imageId);
+            // Database lookup: Check if the sender is from an authorized market
+            const { data: market, error } = await supabase
+                .from('markets')
+                .select('id, name')
+                .contains('whatsapp_numbers', [from])
+                .single();
 
-                if (metaDownloadUrl) {
-                    console.log('Got Meta download URL, fetching image...');
+            if (error && error.code !== 'PGRST116') {
+                // Log actual database errors (not "no rows found")
+                console.error('Database lookup error:', error);
+            }
 
-                    // Step 2: Download the actual image from Meta's servers
-                    const imageResponse = await fetch(metaDownloadUrl, {
-                        headers: {
-                            'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`
-                        }
-                    });
+            if (!market) {
+                console.log('Unauthorized number: ' + from);
+                return;
+            }
 
-                    if (imageResponse.ok) {
-                        const imageBuffer = await imageResponse.arrayBuffer();
+            console.log('Message recognized from: ' + market.name);
 
-                        // Step 3: Upload to Supabase Storage
-                        const filename = `whatsapp-${Date.now()}.jpg`;
+            // Determine product_name based on message type
+            let productName: string;
+            if (type === 'image') {
+                productName = caption || 'WhatsApp Bild';
+            } else {
+                productName = content || 'WhatsApp Nachricht';
+            }
 
-                        const { error: uploadError } = await adminClient
-                            .storage
-                            .from('offer-images')
-                            .upload(filename, imageBuffer, {
-                                contentType: 'image/jpeg',
-                                upsert: false
-                            });
+            // Handle image download and storage
+            let imageUrl: string | null = null;
 
-                        if (uploadError) {
-                            console.log('Error uploading to storage:', uploadError.message);
-                        } else {
-                            // Step 4: Get the public URL
-                            const { data: publicUrlData } = adminClient
+            if (type === 'image' && imageId) {
+                try {
+                    // Step 1: Get the temporary download URL from Meta
+                    const metaDownloadUrl = await getWhatsAppMediaUrl(imageId);
+
+                    if (metaDownloadUrl) {
+                        console.log('Got Meta download URL, fetching image...');
+
+                        // Step 2: Download the actual image from Meta's servers
+                        const imageResponse = await fetch(metaDownloadUrl, {
+                            headers: {
+                                'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`
+                            }
+                        });
+
+                        if (imageResponse.ok) {
+                            const imageBuffer = await imageResponse.arrayBuffer();
+
+                            // Step 3: Upload to Supabase Storage
+                            const filename = `whatsapp-${Date.now()}.jpg`;
+
+                            const { error: uploadError } = await adminClient
                                 .storage
                                 .from('offer-images')
-                                .getPublicUrl(filename);
+                                .upload(filename, imageBuffer, {
+                                    contentType: 'image/jpeg',
+                                    upsert: false
+                                });
 
-                            imageUrl = publicUrlData.publicUrl;
-                            console.log('Image successfully saved to Storage and linked to Offer!');
+                            if (uploadError) {
+                                console.log('Error uploading to storage:', uploadError.message);
+                            } else {
+                                // Step 4: Get the public URL
+                                const { data: publicUrlData } = adminClient
+                                    .storage
+                                    .from('offer-images')
+                                    .getPublicUrl(filename);
+
+                                imageUrl = publicUrlData.publicUrl;
+                                console.log('Image successfully saved to Storage and linked to Offer!');
+                            }
+                        } else {
+                            console.log('Failed to download image from Meta:', imageResponse.status);
                         }
                     } else {
-                        console.log('Failed to download image from Meta:', imageResponse.status);
+                        console.log('Could not get Meta download URL for image');
                     }
-                } else {
-                    console.log('Could not get Meta download URL for image');
+                } catch (imageError) {
+                    console.log('Error in image processing:', imageError);
                 }
-            } catch (imageError) {
-                console.log('Error in image processing:', imageError);
             }
-        }
 
-        // Analyze the offer with AI before saving
-        const messageText = caption || content || '';
-        console.log('Analyzing offer with AI...');
+            // Analyze the offer with AI before saving
+            const messageText = caption || content || '';
+            console.log('Analyzing offer with AI...');
 
-        const aiAnalysis = await analyzeOffer(messageText, imageUrl || undefined);
+            const aiAnalysis = await analyzeOffer(messageText, imageUrl || undefined);
 
-        if (aiAnalysis) {
-            console.log('AI Analysis complete:', aiAnalysis);
-        } else {
-            console.log('AI Analysis failed, using fallback values');
-        }
-
-        // Calculate expiration date (AI-extracted or default 7 days)
-        let expiresAtDate: Date;
-        if (aiAnalysis?.expires_at) {
-            expiresAtDate = new Date(aiAnalysis.expires_at);
-            // Validate the date is in the future
-            if (expiresAtDate <= new Date()) {
-                expiresAtDate = new Date();
-                expiresAtDate.setDate(expiresAtDate.getDate() + 7);
+            if (aiAnalysis) {
+                console.log('AI Analysis complete:', aiAnalysis);
+            } else {
+                console.log('AI Analysis failed, using fallback values');
             }
-        } else {
-            expiresAtDate = new Date();
+
+            // Determine final image URL based on AI analysis
+            let finalImageUrl: string;
+            const placeholderUrl = 'https://placehold.co/600x400/eeeeee/999999?text=Kein+Bild';
+
+            if (aiAnalysis?.is_image_professional && imageUrl) {
+                // Use the original WhatsApp photo if it's professional
+                console.log('Using original professional image');
+                finalImageUrl = imageUrl;
+            } else {
+                // Try to generate a professional AI image
+                console.log('Original image not professional, generating AI image...');
+                const generatedImageUrl = await generateProductImage(
+                    aiAnalysis?.product_name || productName
+                );
+
+                if (generatedImageUrl) {
+                    // Verify if it's a Base64 data URL or regular URL
+                    const isBase64 = generatedImageUrl.startsWith('data:image/');
+                    console.log(`AI image generated successfully (${isBase64 ? 'Base64 data URL' : 'Regular URL'})`);
+                    console.log(`Image length: ${generatedImageUrl.length} characters`);
+
+                    // Convert Base64 to Storage
+                    if (isBase64) {
+                        try {
+                            console.log('Converting Base64 to storage...');
+
+                            // Extract base64 data (remove data:image/png;base64, prefix)
+                            const base64Data = generatedImageUrl.split(',')[1];
+                            const imageBuffer = Buffer.from(base64Data, 'base64');
+
+                            // Upload to Supabase Storage
+                            const filename = `ai-generated-${Date.now()}.png`;
+                            const { error: uploadError } = await adminClient
+                                .storage
+                                .from('offer-images')
+                                .upload(filename, imageBuffer, {
+                                    contentType: 'image/png',
+                                    upsert: false
+                                });
+
+                            if (uploadError) {
+                                console.log('Error uploading AI image to storage:', uploadError.message);
+                                // Fallback to original image or placeholder
+                                finalImageUrl = imageUrl || placeholderUrl;
+                            } else {
+                                // Get the public URL
+                                const { data: publicUrlData } = adminClient
+                                    .storage
+                                    .from('offer-images')
+                                    .getPublicUrl(filename);
+
+                                finalImageUrl = publicUrlData.publicUrl;
+                                console.log('AI image successfully saved to Storage!');
+                            }
+                        } catch (conversionError) {
+                            console.log('Error converting Base64 to storage:', conversionError);
+                            finalImageUrl = imageUrl || placeholderUrl;
+                        }
+                    } else {
+                        // It's already a URL
+                        finalImageUrl = generatedImageUrl;
+                    }
+                } else if (imageUrl) {
+                    // Fallback to original image if generation fails
+                    console.log('AI generation failed, using original image');
+                    finalImageUrl = imageUrl;
+                } else {
+                    // Use placeholder if no image available
+                    console.log('No image available, using placeholder');
+                    finalImageUrl = placeholderUrl;
+                }
+            }
+
+            console.log(`Final image URL type: ${finalImageUrl.startsWith('data:image/') ? 'Base64 data URL' : 'Regular URL'}`);
+
+            // Calculate expiration date (default 7 days)
+            const expiresAtDate = new Date();
             expiresAtDate.setDate(expiresAtDate.getDate() + 7);
+
+            const { error: insertError } = await adminClient
+                .from('offers')
+                .insert({
+                    market_id: market.id,
+                    message_id: messageId, // Store WhatsApp message ID for deduplication
+                    product_name: aiAnalysis?.product_name || productName,
+                    description: aiAnalysis?.description || 'WhatsApp Draft',
+                    price: aiAnalysis?.price ? parseFloat(aiAnalysis.price) : 0,
+                    unit: aiAnalysis?.unit || 'Stück',
+                    ai_category: aiAnalysis?.ai_category || null,
+                    expires_at: expiresAtDate.toISOString(),
+                    status: 'draft',
+                    image_url: finalImageUrl,
+                    raw_whatsapp_data: body
+                });
+
+            if (insertError) {
+                console.log('Error creating offer: ', insertError.message);
+            } else {
+                console.log('Successfully created draft offer for: ' + market.name);
+            }
+        } catch (error) {
+            console.error('Error in background processing:', error);
         }
+    })();
 
-        const { error: insertError } = await adminClient
-            .from('offers')
-            .insert({
-                market_id: market.id,
-                product_name: aiAnalysis?.product_name || productName,
-                description: aiAnalysis?.description || 'WhatsApp Draft',
-                price: aiAnalysis?.price ? parseFloat(aiAnalysis.price) : 0,
-                unit: aiAnalysis?.unit || 'Stück',
-                ai_category: aiAnalysis?.ai_category || null,
-                expires_at: expiresAtDate.toISOString(),
-                status: 'draft',
-                image_url: imageUrl,
-                raw_whatsapp_data: body
-            });
-
-        if (insertError) {
-            console.log('Error creating offer: ', insertError.message);
-        } else {
-            console.log('Successfully created draft offer for: ' + market.name);
-        }
-    } else {
-        console.log('Unauthorized number: ' + from);
-    }
-
-    return NextResponse.json({ ok: true });
+    // Return 200 OK immediately
+    return new Response('Success', { status: 200 });
 }
