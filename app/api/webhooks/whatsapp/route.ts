@@ -365,9 +365,11 @@ export async function POST(request: NextRequest) {
             // IMAGE LIBRARY LOGIC ENDS HERE
             // ========================================
 
-            // Calculate expiration date (default 7 days)
+            // Calculate expiration date using AI-extracted duration or default to 7 days
+            const expiresInDays = aiAnalysis?.expires_in_days || 7;
             const expiresAtDate = new Date();
-            expiresAtDate.setDate(expiresAtDate.getDate() + 7);
+            expiresAtDate.setDate(expiresAtDate.getDate() + expiresInDays);
+            console.log(`📅 Offer expires in ${expiresInDays} days (${expiresAtDate.toISOString()})`);
 
             // Insert offer with image_id (NOT image_url)
             const { error: insertError } = await adminClient

@@ -13,6 +13,7 @@ interface AnalyzeOfferResult {
     description: string;
     ai_category: string;
     is_image_professional: boolean;
+    expires_in_days: number;
 }
 
 /**
@@ -35,7 +36,8 @@ export async function analyzeOffer(
 - unit: Unit of measurement (e.g., "kg", "Stück", "Bund", "Packung")
 - description: An appetizing German sentence describing the product. Use plural form in description if product_name is plural (e.g., "Frische Bananen" not "Frische Banane").
 - ai_category: Product category (e.g., "Obst & Gemüse", "Fleisch & Wurst", "Backwaren", "Milchprodukte", "Getränke")
-- is_image_professional: Boolean - true ONLY if the photo is a professional product shot on clean background. False if it's a shelf photo, blurry, has text overlays, or is missing.`,
+- is_image_professional: Boolean - true ONLY if the photo is a professional product shot on clean background. False if it's a shelf photo, blurry, has text overlays, or is missing.
+- expires_in_days: Number of days the offer is valid. Extract from phrases like "eine Woche" (7), "zwei Wochen" (14), "3 Tage" (3), "bis Samstag" (calculate days). Default to 7 if not specified.`,
             },
         ];
 
