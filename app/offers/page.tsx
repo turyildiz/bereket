@@ -70,7 +70,8 @@ function OffersPageContent() {
             if (filterMode === 'favorites' && hasFavorites && favorites.length > 0) {
                 dataQuery = supabase
                     .from('offers')
-                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets(id, name, city)')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, name, city)')
+                    .eq('markets.is_active', true)
                     .eq('status', 'live')
                     .gt('expires_at', new Date().toISOString())
                     .in('market_id', favorites)
@@ -79,7 +80,8 @@ function OffersPageContent() {
             } else {
                 dataQuery = supabase
                     .from('offers')
-                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets(id, name, city)')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, name, city)')
+                    .eq('markets.is_active', true)
                     .eq('status', 'live')
                     .gt('expires_at', new Date().toISOString())
                     .order('created_at', { ascending: false })
@@ -116,7 +118,8 @@ function OffersPageContent() {
 
         let query = supabase
             .from('offers')
-            .select('id, product_name, price, image_library(url), expires_at, market_id, created_at, markets(id, name, city)')
+            .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, name, city)')
+            .eq('markets.is_active', true)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: false })

@@ -19,6 +19,7 @@ export interface Market {
     features: string[] | null;
     opening_hours: { day: string; time: string }[] | null;
     is_premium: boolean;
+    is_active: boolean;
     created_at: string;
 }
 

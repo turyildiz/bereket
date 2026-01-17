@@ -381,6 +381,20 @@ export default function MarketManager({
         setDeleteConfirm(null);
     };
 
+    const handleToggleActive = async (id: string, currentStatus: boolean) => {
+        const { error } = await supabase
+            .from('markets')
+            .update({ is_active: !currentStatus })
+            .eq('id', id);
+
+        if (error) {
+            showToast('Fehler beim Aktualisieren: ' + error.message, 'error');
+        } else {
+            await fetchMarkets(debouncedQuery, currentPage);
+            showToast(`Markt ${!currentStatus ? 'aktiviert' : 'deaktiviert'}!`, 'success');
+        }
+    };
+
     const handleSeedData = async () => {
         setShowSeedConfirm(false);
         setSeeding(true);
@@ -869,9 +883,10 @@ export default function MarketManager({
                                     </div>
                                 </div>
                                 <div className="p-4 pt-8">
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                                         <h4 className="text-lg font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>{market.name}</h4>
                                         {market.is_premium && <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: 'linear-gradient(135deg, var(--saffron), #d4a12a)', color: 'white', fontFamily: 'var(--font-outfit)' }}>Premium</span>}
+                                        {!market.is_active && <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: 'var(--terracotta)', color: 'white', fontFamily: 'var(--font-outfit)' }}>Deaktiviert</span>}
                                     </div>
                                     <div className="flex items-center gap-1 text-sm mb-4" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -881,6 +896,17 @@ export default function MarketManager({
                                         <span>{market.zip_code && <strong className="font-semibold">{market.zip_code}</strong>} {market.city}</span>
                                     </div>
                                     <div className="flex gap-2 pt-3 border-t relative" style={{ borderColor: 'var(--sand)' }}>
+                                        {/* Active/Inactive Toggle */}
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleToggleActive(market.id, market.is_active)}
+                                                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer"
+                                                style={{ background: market.is_active ? 'var(--cardamom)' : 'var(--warm-gray)' }}
+                                                title={market.is_active ? 'Markt ist aktiv' : 'Markt ist inaktiv'}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${market.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
                                         <a href={`/shop/${market.id}`} target="_blank" rel="noopener noreferrer" className="py-2 px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(107,142,122,0.2)]" style={{ background: 'rgba(107, 142, 122, 0.1)', color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

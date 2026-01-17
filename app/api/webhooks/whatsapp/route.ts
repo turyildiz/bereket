@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     // This happens BEFORE deduplication and any AI processing to prevent costs
     const { data: market, error: marketError } = await supabase
         .from('markets')
-        .select('id, name')
+        .select('id, name, is_active')
         .contains('whatsapp_numbers', [from])
         .single();
 
@@ -103,6 +103,41 @@ export async function POST(request: NextRequest) {
             const responseData = await response.json();
             console.log('META RESPONSE BODY:', JSON.stringify(responseData, null, 2)); // This reveals the real error
             console.log('Sent access denied message to:', from);
+        } catch (replyError) {
+            console.error('Error sending WhatsApp reply:', replyError);
+        }
+
+        // Return 200 OK to prevent Meta retries
+        return new Response('Success', { status: 200 });
+    }
+
+    // CHECK IF MARKET IS ACTIVE
+    if (!market.is_active) {
+        console.log('Inactive market attempted to send message: ' + market.name);
+
+        // Send WhatsApp reply to inactive market
+        try {
+            const response = await fetch(`https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    recipient_type: 'individual',
+                    to: from,
+                    type: 'text',
+                    text: {
+                        preview_url: false,
+                        body: "⏸️ Ihr Account ist aktuell pausiert. Bitte kontaktieren Sie Ihren Berater."
+                    }
+                })
+            });
+
+            const responseData = await response.json();
+            console.log('META RESPONSE BODY:', JSON.stringify(responseData, null, 2));
+            console.log('Sent account paused message to:', from);
         } catch (replyError) {
             console.error('Error sending WhatsApp reply:', replyError);
         }
