@@ -6,6 +6,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 interface MarketCardWithFavoriteProps {
     market: {
         id: string;
+        slug: string;
         name: string;
         city: string;
         header_url?: string | null;
@@ -77,7 +78,7 @@ export default function MarketCardWithFavorite({
 
     return (
         <Link
-            href={`/shop/${market.id}`}
+            href={`/shop/${market.slug}`}
             className="group relative rounded-3xl overflow-hidden cursor-pointer block animate-scale-in transition-transform duration-300 hover:scale-[1.03]"
             style={{
                 animationDelay: `${index * 0.1}s`,

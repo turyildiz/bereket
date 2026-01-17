@@ -13,6 +13,7 @@ interface SearchPageProps {
 // Market type
 type MarketType = {
     id: string;
+    slug: string;
     name: string;
     city: string;
     zip_code: string | null;
@@ -33,6 +34,7 @@ type OfferWithMarket = {
     }[] | null;
     market_id: string;
     markets: {
+        slug: string;
         name: string;
         city: string;
         zip_code: string | null;
@@ -60,7 +62,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         // Search shops by name
         let shopQuery = supabase
             .from('markets')
-            .select('id, name, city, zip_code, logo_url, header_url, about_text, is_premium')
+            .select('id, slug, name, city, zip_code, logo_url, header_url, about_text, is_premium')
             .eq('is_active', true)
             .ilike('name', `%${q}%`);
 
@@ -80,7 +82,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         // Search products
         let productQuery = supabase
             .from('offers')
-            .select('id, product_name, description, price, market_id, image_library(url), markets!inner(name, city, zip_code)')
+            .select('id, product_name, description, price, market_id, image_library(url), markets!inner(slug, name, city, zip_code)')
             .eq('markets.is_active', true)
             .or(`product_name.ilike.%${q}%,description.ilike.%${q}%`)
             .eq('status', 'live')
@@ -110,7 +112,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     else if (city || plz) {
         let locationQuery = supabase
             .from('markets')
-            .select('id, name, city, zip_code, logo_url, header_url, about_text, is_premium')
+            .select('id, slug, name, city, zip_code, logo_url, header_url, about_text, is_premium')
             .eq('is_active', true);
 
         if (regionPrefix) {
@@ -452,7 +454,7 @@ function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) 
 
     return (
         <Link
-            href={`/shop/${offer.market_id}`}
+            href={`/shop/${offer.markets?.slug || ''}`}
             className="group relative rounded-3xl overflow-hidden cursor-pointer block transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 animate-scale-in"
             style={{
                 background: 'white',

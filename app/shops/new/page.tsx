@@ -7,6 +7,7 @@ import MarketCardWithFavorite from '@/app/components/MarketCardWithFavorite';
 
 interface Market {
     id: string;
+    slug: string;
     name: string;
     city: string;
     header_url: string | null;
@@ -45,7 +46,7 @@ export default function NewShopsPage() {
             // Fetch initial batch
             const { data, error } = await supabase
                 .from('markets')
-                .select('id, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
+                .select('id, slug, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
                 .order('created_at', { ascending: false })
                 .range(0, INITIAL_LOAD - 1);
 
@@ -74,7 +75,7 @@ export default function NewShopsPage() {
 
         const { data, error } = await supabase
             .from('markets')
-            .select('id, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
+            .select('id, slug, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
             .order('created_at', { ascending: false })
             .range(start, end);
 

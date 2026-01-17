@@ -11,7 +11,7 @@ export default async function Home() {
   // Fetch top 6 premium markets
   const { data: premiumMarkets } = await supabase
     .from('markets')
-    .select('id, name, city, header_url, logo_url, about_text, is_premium')
+    .select('id, slug, name, city, header_url, logo_url, about_text, is_premium')
     .eq('is_premium', true)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
@@ -20,7 +20,7 @@ export default async function Home() {
   // Fetch newest markets (6 most recently created)
   const { data: newestMarkets } = await supabase
     .from('markets')
-    .select('id, name, city, header_url, logo_url, about_text, is_premium')
+    .select('id, slug, name, city, header_url, logo_url, about_text, is_premium')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(6);
@@ -28,7 +28,7 @@ export default async function Home() {
   // Fetch 10 recent offers from premium markets for hero floating cards
   const { data: premiumOffers } = await supabase
     .from('offers')
-    .select('id, product_name, price, market_id, image_library(url), markets!inner(id, name, city, is_premium, is_active)')
+    .select('id, product_name, price, market_id, image_library(url), markets!inner(id, slug, name, city, is_premium, is_active)')
     .eq('markets.is_premium', true)
     .eq('markets.is_active', true)
     .eq('status', 'live')
@@ -98,7 +98,7 @@ export default async function Home() {
                   <>
                     {/* Primary Card */}
                     <Link
-                      href={`/shop/${heroOffers[0].market_id}`}
+                      href={`/shop/${(heroOffers[0].markets as unknown as { slug: string }).slug}`}
                       className="block bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float cursor-pointer"
                     >
                       <div className="relative rounded-2xl overflow-hidden mb-4">
@@ -124,7 +124,7 @@ export default async function Home() {
                     {/* Secondary Card */}
                     {heroOffers.length > 1 && (
                       <Link
-                        href={`/shop/${heroOffers[1].market_id}`}
+                        href={`/shop/${(heroOffers[1].markets as unknown as { slug: string }).slug}`}
                         className="absolute -bottom-20 -left-16 block bg-white rounded-2xl shadow-xl p-4 w-56 transform -rotate-6 hover:rotate-0 transition-all duration-500 animate-float cursor-pointer"
                         style={{ animationDelay: '1s' }}
                       >

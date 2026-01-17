@@ -18,6 +18,7 @@ interface Offer {
     created_at: string;
     markets: {
         id: string;
+        slug: string;
         name: string;
         city: string;
     } | null;
@@ -71,7 +72,7 @@ function OffersPageContent() {
             if (filterMode === 'favorites' && hasFavorites && favorites.length > 0) {
                 dataQuery = supabase
                     .from('offers')
-                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, name, city)')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city)')
                     .eq('markets.is_active', true)
                     .eq('status', 'live')
                     .gt('expires_at', new Date().toISOString())
@@ -81,7 +82,7 @@ function OffersPageContent() {
             } else {
                 dataQuery = supabase
                     .from('offers')
-                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, name, city)')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city)')
                     .eq('markets.is_active', true)
                     .eq('status', 'live')
                     .gt('expires_at', new Date().toISOString())
@@ -119,7 +120,7 @@ function OffersPageContent() {
 
         let query = supabase
             .from('offers')
-            .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, name, city)')
+            .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city)')
             .eq('markets.is_active', true)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
@@ -298,7 +299,7 @@ function OffersPageContent() {
 
                                 return (
                                     <Link
-                                        href={marketData ? `/shop/${marketData.id}` : '#'}
+                                        href={marketData ? `/shop/${marketData.slug}` : '#'}
                                         key={offer.id}
                                         className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in block"
                                         style={{

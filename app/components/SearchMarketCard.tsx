@@ -5,6 +5,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 
 interface MarketType {
     id: string;
+    slug: string;
     name: string;
     city: string;
     zip_code: string | null;
@@ -66,7 +67,7 @@ export default function SearchMarketCard({ market, index }: SearchMarketCardProp
 
     return (
         <Link
-            href={`/shop/${market.id}`}
+            href={`/shop/${market.slug}`}
             className="group relative rounded-3xl overflow-hidden cursor-pointer block transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 animate-scale-in"
             style={{
                 background: 'white',

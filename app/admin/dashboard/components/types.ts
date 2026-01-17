@@ -4,6 +4,7 @@ export type UserRole = 'superadmin' | 'admin' | 'user';
 
 export interface Market {
     id: string;
+    slug: string;
     name: string;
     city: string;
     zip_code: string | null;
@@ -31,6 +32,7 @@ export interface TeamMember {
 }
 
 export interface MarketFormData {
+    slug: string;
     name: string;
     city: string;
     zip_code: string;

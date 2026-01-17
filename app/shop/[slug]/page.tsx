@@ -7,16 +7,16 @@ import ShopOffersSection from './ShopOffersSection';
 export default async function ShopProfile({
   params
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ slug: string }>
 }) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = await createClient();
 
-  // 1. Fetch Market Data
+  // 1. Fetch Market Data by slug
   const { data: market, error } = await supabase
     .from('markets')
     .select('*')
-    .eq('id', id)
+    .eq('slug', slug)
     .single();
 
   if (error || !market || !market.is_active) {
@@ -26,8 +26,8 @@ export default async function ShopProfile({
   // 2. Fetch Similar Markets (Regional Zone)
   let similarMarketsQuery = supabase
     .from('markets')
-    .select('id, name, city, zip_code, header_url, logo_url')
-    .neq('id', id);
+    .select('id, slug, name, city, zip_code, header_url, logo_url')
+    .neq('id', market.id);
 
   if (market.zip_code && market.zip_code.length >= 2) {
     const regionPrefix = market.zip_code.substring(0, 2);
@@ -353,7 +353,7 @@ export default async function ShopProfile({
 
           {/* ========== RIGHT COLUMN: Offers ========== */}
           <div className="min-w-0">
-            <ShopOffersSection marketId={id} marketName={market.name} />
+            <ShopOffersSection marketId={market.id} marketName={market.name} />
 
             {/* Similar Shops Section */}
             {similarMarkets && similarMarkets.length > 0 && (
@@ -371,7 +371,7 @@ export default async function ShopProfile({
                   {similarMarkets.map((otherShop) => (
                     <Link
                       key={otherShop.id}
-                      href={`/shop/${otherShop.id}`}
+                      href={`/shop/${otherShop.slug}`}
                       className="group rounded-2xl overflow-hidden shadow-lg hover-scale block cursor-pointer"
                       style={{
                         background: 'rgba(255, 255, 255, 0.8)',

@@ -33,6 +33,7 @@ export default function MarketManager({
     const [editingMarket, setEditingMarket] = useState<Market | null>(null);
 
     const [formData, setFormData] = useState<MarketFormData>({
+        slug: '',
         name: '',
         city: '',
         zip_code: '',
@@ -270,6 +271,7 @@ export default function MarketManager({
         }
 
         const marketData = {
+            slug: formData.slug,
             name: formData.name,
             city: formData.city,
             zip_code: formData.zip_code || null,
@@ -323,6 +325,7 @@ export default function MarketManager({
 
     const resetForm = () => {
         setFormData({
+            slug: '',
             name: '',
             city: '',
             zip_code: '',
@@ -347,6 +350,7 @@ export default function MarketManager({
     const handleEditMarket = (market: Market) => {
         setEditingMarket(market);
         setFormData({
+            slug: market.slug || '',
             name: market.name,
             city: market.city || '',
             zip_code: market.zip_code || '',
@@ -604,6 +608,13 @@ export default function MarketManager({
                                         <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Marktname *</label>
                                         <input type="text" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} placeholder="z.B. Istanbul Supermarkt" required className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
                                     </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>URL-Slug *</label>
+                                        <input type="text" value={formData.slug} onChange={(e) => { const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''); setFormData(prev => ({ ...prev, slug: val })); }} placeholder="z.B. istanbul-supermarkt-frankfurt" required className="w-full px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                        <p className="text-xs mt-1" style={{ color: 'var(--warm-gray)' }}>Wird für die Shop-URL verwendet: /shop/{formData.slug || 'slug'}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>PLZ *</label>
@@ -915,7 +926,7 @@ export default function MarketManager({
                                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${market.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
                                             </button>
                                         </div>
-                                        <a href={`/shop/${market.id}`} target="_blank" rel="noopener noreferrer" className="py-2 px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(107,142,122,0.2)]" style={{ background: 'rgba(107, 142, 122, 0.1)', color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
+                                        <a href={`/shop/${market.slug}`} target="_blank" rel="noopener noreferrer" className="py-2 px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(107,142,122,0.2)]" style={{ background: 'rgba(107, 142, 122, 0.1)', color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />

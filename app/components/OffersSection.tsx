@@ -16,6 +16,7 @@ interface Offer {
     market_id: string;
     markets: {
         id: string;
+        slug: string;
         name: string;
     } | null;
     image_library: {
@@ -42,7 +43,7 @@ export default function OffersSection() {
 
             let query = supabase
                 .from('offers')
-                .select('id, product_name, price, unit, description, image_id, expires_at, market_id, markets(id, name), image_library(url)')
+                .select('id, product_name, price, unit, description, image_id, expires_at, market_id, markets(id, slug, name), image_library(url)')
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
                 .order('created_at', { ascending: false });
@@ -146,7 +147,7 @@ export default function OffersSection() {
 
                                 return (
                                     <Link
-                                        href={marketData ? `/shop/${marketData.id}` : '#'}
+                                        href={marketData ? `/shop/${marketData.slug}` : '#'}
                                         key={offer.id}
                                         className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in block"
                                         style={{

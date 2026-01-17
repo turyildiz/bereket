@@ -5,6 +5,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 
 interface Market {
     id: string;
+    slug: string;
     name: string;
     city: string;
     header_url?: string | null;
@@ -71,7 +72,7 @@ function MobileMarketCard({ market }: MobileMarketCardProps) {
 
     return (
         <Link
-            href={`/shop/${market.id}`}
+            href={`/shop/${market.slug}`}
             className="group relative rounded-3xl overflow-hidden cursor-pointer block shrink-0 snap-start w-[280px] transition-transform duration-300 active:scale-[0.98]"
             style={{
                 background: 'white',
