@@ -13,7 +13,6 @@ interface MarketCardWithFavoriteProps {
         about_text?: string | null;
         is_premium?: boolean;
         zip_code?: string | null;
-        location?: string | null;
     };
     index?: number;
     variant?: 'premium' | 'new' | 'search';
