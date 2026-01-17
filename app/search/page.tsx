@@ -16,7 +16,6 @@ type MarketType = {
     name: string;
     city: string;
     zip_code: string | null;
-    location: string;
     logo_url: string | null;
     header_url: string | null;
     about_text: string | null;
@@ -61,7 +60,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         // Search shops by name
         let shopQuery = supabase
             .from('markets')
-            .select('id, name, city, zip_code, location, logo_url, header_url, about_text, is_premium')
+            .select('id, name, city, zip_code, logo_url, header_url, about_text, is_premium')
             .eq('is_active', true)
             .ilike('name', `%${q}%`);
 
@@ -111,7 +110,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     else if (city || plz) {
         let locationQuery = supabase
             .from('markets')
-            .select('id, name, city, zip_code, location, logo_url, header_url, about_text, is_premium')
+            .select('id, name, city, zip_code, logo_url, header_url, about_text, is_premium')
             .eq('is_active', true);
 
         if (regionPrefix) {

@@ -7,7 +7,6 @@ interface MarketType {
     name: string;
     city: string;
     zip_code: string | null;
-    location: string;
     logo_url: string | null;
     header_url: string | null;
     about_text: string | null;
