@@ -10,7 +10,9 @@ interface Offer {
     id: string;
     product_name: string;
     price: string;
-    image_url: string | null;
+    image_library: {
+        url: string;
+    } | null;
     expires_at: string;
     market_id: string;
     created_at: string;
@@ -50,7 +52,7 @@ function OffersPageContent() {
             // Build base query for count
             let countQuery = supabase
                 .from('offers')
-                .select('*', { count: 'exact', head: true })
+                .select('id', { count: 'exact', head: true })
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString());
 
@@ -63,22 +65,34 @@ function OffersPageContent() {
             setTotalCount(count);
 
             // Build data query
-            let dataQuery = supabase
-                .from('offers')
-                .select('id, product_name, price, image_url, expires_at, market_id, created_at, markets(id, name, city)')
-                .eq('status', 'live')
-                .gt('expires_at', new Date().toISOString())
-                .order('created_at', { ascending: false })
-                .range(0, INITIAL_LOAD - 1);
+            let dataQuery;
 
             if (filterMode === 'favorites' && hasFavorites && favorites.length > 0) {
-                dataQuery = dataQuery.in('market_id', favorites);
+                dataQuery = supabase
+                    .from('offers')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets(id, name, city)')
+                    .eq('status', 'live')
+                    .gt('expires_at', new Date().toISOString())
+                    .in('market_id', favorites)
+                    .order('created_at', { ascending: false })
+                    .range(0, INITIAL_LOAD - 1);
+            } else {
+                dataQuery = supabase
+                    .from('offers')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets(id, name, city)')
+                    .eq('status', 'live')
+                    .gt('expires_at', new Date().toISOString())
+                    .order('created_at', { ascending: false })
+                    .range(0, INITIAL_LOAD - 1);
             }
 
             const { data, error } = await dataQuery;
 
             if (error) {
                 console.error('Error fetching offers:', error);
+                console.error('Error message:', error.message);
+                console.error('Error details:', error.details);
+                console.error('Error hint:', error.hint);
                 setOffers([]);
             } else {
                 setOffers((data as unknown as Offer[]) || []);
@@ -102,7 +116,7 @@ function OffersPageContent() {
 
         let query = supabase
             .from('offers')
-            .select('id, product_name, price, image_url, expires_at, market_id, created_at, markets(id, name, city)')
+            .select('id, product_name, price, image_library(url), expires_at, market_id, created_at, markets(id, name, city)')
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: false })
@@ -226,8 +240,8 @@ function OffersPageContent() {
                                     <button
                                         onClick={() => setFilterMode('all')}
                                         className={`px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300 cursor-pointer ${filterMode === 'all'
-                                                ? 'text-white shadow-lg'
-                                                : 'text-white/60 hover:text-white hover:bg-white/10'
+                                            ? 'text-white shadow-lg'
+                                            : 'text-white/60 hover:text-white hover:bg-white/10'
                                             }`}
                                         style={{
                                             background: filterMode === 'all' ? 'var(--gradient-warm)' : 'transparent'
@@ -238,8 +252,8 @@ function OffersPageContent() {
                                     <button
                                         onClick={() => setFilterMode('favorites')}
                                         className={`px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300 cursor-pointer flex items-center gap-2 ${filterMode === 'favorites'
-                                                ? 'text-white shadow-lg'
-                                                : 'text-white/60 hover:text-white hover:bg-white/10'
+                                            ? 'text-white shadow-lg'
+                                            : 'text-white/60 hover:text-white hover:bg-white/10'
                                             }`}
                                         style={{
                                             background: filterMode === 'favorites' ? 'var(--gradient-warm)' : 'transparent'
@@ -292,7 +306,7 @@ function OffersPageContent() {
                                         {/* Image */}
                                         <div className="relative aspect-[4/3] overflow-hidden">
                                             <img
-                                                src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
+                                                src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                                                 alt={offer.product_name}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                             />

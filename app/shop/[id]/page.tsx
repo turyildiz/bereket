@@ -19,7 +19,7 @@ export default async function ShopProfile({
     .eq('id', id)
     .single();
 
-  if (error || !market) {
+  if (error || !market || !market.is_active) {
     return notFound();
   }
 

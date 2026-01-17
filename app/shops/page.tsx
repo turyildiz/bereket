@@ -38,7 +38,8 @@ export default function AllShopsPage() {
             // Get total count
             const { count } = await supabase
                 .from('markets')
-                .select('*', { count: 'exact', head: true });
+                .select('*', { count: 'exact', head: true })
+                .eq('is_active', true);
 
             setTotalCount(count);
 
@@ -46,6 +47,7 @@ export default function AllShopsPage() {
             const { data, error } = await supabase
                 .from('markets')
                 .select('id, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
+                .eq('is_active', true)
                 .order('created_at', { ascending: false })
                 .range(0, INITIAL_LOAD - 1);
 
@@ -75,6 +77,7 @@ export default function AllShopsPage() {
         const { data, error } = await supabase
             .from('markets')
             .select('id, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
+            .eq('is_active', true)
             .order('created_at', { ascending: false })
             .range(start, end);
 
