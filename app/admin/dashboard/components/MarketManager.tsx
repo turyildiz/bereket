@@ -92,6 +92,7 @@ export default function MarketManager({
             }
 
             dataQuery = dataQuery
+                .order('is_active', { ascending: false })
                 .order('is_premium', { ascending: false })
                 .order('created_at', { ascending: false })
                 .range(start, end);
@@ -873,12 +874,19 @@ export default function MarketManager({
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {markets.map((market) => (
-                            <div key={market.id} className="glass-card hover-lift overflow-hidden">
-                                <div className="h-24 relative" style={{ background: 'var(--gradient-warm)' }}>
-                                    {market.header_url && <img src={market.header_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+                            <div
+                                key={market.id}
+                                className="glass-card hover-lift overflow-hidden"
+                                style={{
+                                    opacity: market.is_active ? 1 : 0.6,
+                                    filter: market.is_active ? 'none' : 'grayscale(50%)'
+                                }}
+                            >
+                                <div className="h-24 relative" style={{ background: market.is_active ? 'var(--gradient-warm)' : '#9ca3af' }}>
+                                    {market.header_url && <img src={market.header_url} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: market.is_active ? 1 : 0.5 }} />}
                                     <div className="absolute -bottom-6 left-4">
                                         <div className="w-14 h-14 rounded-xl shadow-lg flex items-center justify-center overflow-hidden" style={{ background: 'white', border: '3px solid white' }}>
-                                            {market.logo_url ? <img src={market.logo_url} alt="" className="w-full h-full object-cover" /> : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--saffron)' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
+                                            {market.logo_url ? <img src={market.logo_url} alt="" className="w-full h-full object-cover" /> : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: market.is_active ? 'var(--saffron)' : '#9ca3af' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
                                         </div>
                                     </div>
                                 </div>

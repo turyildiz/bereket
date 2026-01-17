@@ -52,8 +52,9 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         image_id: string | null;
         market_id: string;
         expires_at: string;
-    }>({ product_name: '', description: '', price: '', unit: '', image_id: null, market_id: '', expires_at: '' });
-    const [touchedFields, setTouchedFields] = useState<{ market_id?: boolean; product_name?: boolean; price?: boolean; unit?: boolean; image_id?: boolean }>({});
+        ai_category: string;
+    }>({ product_name: '', description: '', price: '', unit: '', image_id: null, market_id: '', expires_at: '', ai_category: '' });
+    const [touchedFields, setTouchedFields] = useState<{ market_id?: boolean; product_name?: boolean; price?: boolean; unit?: boolean; image_id?: boolean; ai_category?: boolean }>({});
     const [generatingDescription, setGeneratingDescription] = useState(false);
 
     const supabase = createClient();
@@ -64,7 +65,8 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         try {
             const { data, error } = await supabase
                 .from('offers')
-                .select('id, product_name, description, price, unit, image_id, expires_at, created_at, market_id, markets(id, name, city), image_library(url)')
+                .select('id, product_name, description, price, unit, image_id, expires_at, created_at, market_id, markets!inner(id, name, city), image_library(url)')
+                .eq('markets.is_active', true)
                 .eq('status', 'draft')
                 .order('created_at', { ascending: false });
 
@@ -79,7 +81,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         } finally {
             setLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [supabase]);
 
     const fetchMarkets = useCallback(async () => {
@@ -87,6 +89,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
             const { data, error } = await supabase
                 .from('markets')
                 .select('id, name, city, zip_code')
+                .eq('is_active', true)
                 .order('zip_code', { ascending: true, nullsFirst: false });
 
             if (error) {
@@ -142,7 +145,8 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
             unit: offer.unit || '',
             image_id: offer.image_id,
             market_id: offer.market_id,
-            expires_at: offer.expires_at ? offer.expires_at.split('T')[0] : '' // Format as YYYY-MM-DD for date input
+            expires_at: offer.expires_at ? offer.expires_at.split('T')[0] : '', // Format as YYYY-MM-DD for date input
+            ai_category: (offer as any).ai_category || ''
         });
         // Fetch library images immediately so preview works
         fetchLibraryImages();
@@ -163,7 +167,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         setShowImageGallery(false);
         setImageSearchQuery('');
         setOriginalImageId(null);
-        setEditForm({ product_name: '', description: '', price: '', unit: '', image_id: null, market_id: '', expires_at: '' });
+        setEditForm({ product_name: '', description: '', price: '', unit: '', image_id: null, market_id: '', expires_at: '', ai_category: '' });
         setIsCreatingNew(false);
         setMarketSearchQuery('');
         setShowMarketDropdown(false);
@@ -173,7 +177,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
     const handleCreateNewClick = () => {
         setIsCreatingNew(true);
         setEditingId('new-offer');
-        setEditForm({ product_name: '', description: '', price: '', unit: '', image_id: null, market_id: '', expires_at: getDefaultExpiryDate() });
+        setEditForm({ product_name: '', description: '', price: '', unit: '', image_id: null, market_id: '', expires_at: getDefaultExpiryDate(), ai_category: '' });
         setTouchedFields({});
         // Add a temporary placeholder offer to the list
         const newOffer: DraftOffer = {
@@ -200,15 +204,16 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
             editForm.product_name.trim() &&
             editForm.price.trim() &&
             editForm.unit.trim() &&
-            editForm.image_id
+            editForm.image_id &&
+            editForm.ai_category
         );
     };
 
     const handleSaveEdit = async (offerId: string) => {
         // For new offers, mark all fields as touched to show validation
         if (isCreatingNew) {
-            setTouchedFields({ market_id: true, product_name: true, price: true, unit: true, image_id: true });
-            if (!editForm.market_id || !editForm.product_name.trim() || !editForm.price.trim() || !editForm.unit.trim() || !editForm.image_id) {
+            setTouchedFields({ market_id: true, product_name: true, price: true, unit: true, image_id: true, ai_category: true });
+            if (!editForm.market_id || !editForm.product_name.trim() || !editForm.price.trim() || !editForm.unit.trim() || !editForm.image_id || !editForm.ai_category) {
                 return; // Don't proceed if validation fails
             }
         }
@@ -249,6 +254,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                         unit: editForm.unit,
                         image_id: editForm.image_id,
                         market_id: editForm.market_id,
+                        ai_category: editForm.ai_category,
                         status: 'draft',
                         expires_at: new Date(editForm.expires_at).toISOString()
                     })
@@ -275,6 +281,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                         unit: editForm.unit,
                         image_id: editForm.image_id,
                         market_id: editForm.market_id,
+                        ai_category: editForm.ai_category,
                         expires_at: editForm.expires_at ? new Date(editForm.expires_at).toISOString() : undefined
                     })
                     .eq('id', offerId);
@@ -528,33 +535,42 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                                 )}
 
                                 {/* Image */}
-                                <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
-                                    <img
-                                        src={(() => {
-                                            // In edit mode, check if user selected a DIFFERENT image
-                                            if (isEditing && editForm.image_id && editForm.image_id !== originalImageId && libraryImages.length > 0) {
-                                                // User selected a new image - find it in library
-                                                const selectedImage = libraryImages.find(img => img.id === editForm.image_id);
-                                                if (selectedImage) {
-                                                    return selectedImage.url;
+                                <div className="relative aspect-[4/3] overflow-hidden" style={{ background: isCreatingNew && !editForm.image_id ? '#e5e7eb' : '#f8f5f0' }}>
+                                    {isCreatingNew && !editForm.image_id ? (
+                                        // Grey placeholder with icon for new offers
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <svg className="w-24 h-24" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" strokeWidth="1">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                    ) : (
+                                        <img
+                                            src={(() => {
+                                                // In edit mode, check if user selected a DIFFERENT image
+                                                if (isEditing && editForm.image_id && editForm.image_id !== originalImageId && libraryImages.length > 0) {
+                                                    // User selected a new image - find it in library
+                                                    const selectedImage = libraryImages.find(img => img.id === editForm.image_id);
+                                                    if (selectedImage) {
+                                                        return selectedImage.url;
+                                                    }
                                                 }
-                                            }
 
-                                            // Fall back to the offer's current image
-                                            const currentImageUrl = offer.image_library?.url;
-                                            if (currentImageUrl) {
-                                                return currentImageUrl;
-                                            }
+                                                // Fall back to the offer's current image
+                                                const currentImageUrl = offer.image_library?.url;
+                                                if (currentImageUrl) {
+                                                    return currentImageUrl;
+                                                }
 
-                                            // Final fallback to placeholder
-                                            return 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
-                                        })()}
-                                        alt={offer.product_name}
-                                        className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                            e.currentTarget.src = 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
-                                        }}
-                                    />
+                                                // Final fallback to placeholder for existing offers
+                                                return 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
+                                            })()}
+                                            alt={offer.product_name}
+                                            className="w-full h-full object-contain"
+                                            onError={(e) => {
+                                                e.currentTarget.src = 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
+                                            }}
+                                        />
+                                    )}
                                     <div
                                         className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold"
                                         style={{ background: 'var(--saffron)', color: 'white', fontFamily: 'var(--font-outfit)' }}
@@ -617,14 +633,14 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                                                             </svg>
                                                         </div>
                                                         {showMarketDropdown && (
-                                                            <div 
+                                                            <div
                                                                 className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg border"
                                                                 style={{ background: 'white', borderColor: 'var(--sand)' }}
                                                             >
                                                                 {markets
                                                                     .filter(market => {
                                                                         const query = marketSearchQuery.toLowerCase();
-                                                                        return !query || 
+                                                                        return !query ||
                                                                             market.name.toLowerCase().includes(query) ||
                                                                             market.city.toLowerCase().includes(query) ||
                                                                             (market.zip_code && market.zip_code.includes(query));
@@ -650,15 +666,15 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                                                                 }
                                                                 {markets.filter(market => {
                                                                     const query = marketSearchQuery.toLowerCase();
-                                                                    return !query || 
+                                                                    return !query ||
                                                                         market.name.toLowerCase().includes(query) ||
                                                                         market.city.toLowerCase().includes(query) ||
                                                                         (market.zip_code && market.zip_code.includes(query));
                                                                 }).length === 0 && (
-                                                                    <div className="px-3 py-2 text-sm" style={{ color: 'var(--warm-gray)' }}>
-                                                                        Kein Markt gefunden
-                                                                    </div>
-                                                                )}
+                                                                        <div className="px-3 py-2 text-sm" style={{ color: 'var(--warm-gray)' }}>
+                                                                            Kein Markt gefunden
+                                                                        </div>
+                                                                    )}
                                                             </div>
                                                         )}
                                                         {touchedFields.market_id && !editForm.market_id && (
@@ -763,6 +779,36 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                                                             </p>
                                                         )}
                                                     </div>
+                                                </div>
+                                                {/* Category Dropdown */}
+                                                <div>
+                                                    <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
+                                                        Kategorie
+                                                        {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
+                                                    </label>
+                                                    <select
+                                                        value={editForm.ai_category}
+                                                        onChange={(e) => setEditForm({ ...editForm, ai_category: e.target.value })}
+                                                        onBlur={() => setTouchedFields(prev => ({ ...prev, ai_category: true }))}
+                                                        className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
+                                                        style={{ borderColor: touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
+                                                    >
+                                                        <option value="">Bitte wählen...</option>
+                                                        <option value="Obst & Gemüse">Obst & Gemüse</option>
+                                                        <option value="Fleisch & Wurst">Fleisch & Wurst</option>
+                                                        <option value="Milchprodukte">Milchprodukte</option>
+                                                        <option value="Backwaren">Backwaren</option>
+                                                        <option value="Getränke">Getränke</option>
+                                                        <option value="Sonstiges">Sonstiges</option>
+                                                    </select>
+                                                    {touchedFields.ai_category && !editForm.ai_category && isCreatingNew && (
+                                                        <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
+                                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Pflichtfeld
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 {/* Expiry Date */}
                                                 <div>

@@ -29,7 +29,9 @@ type OfferWithMarket = {
     product_name: string;
     description?: string | null;
     price: string;
-    image_url: string | null;
+    image_library: {
+        url: string;
+    }[] | null;
     market_id: string;
     markets: {
         name: string;
@@ -60,6 +62,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         let shopQuery = supabase
             .from('markets')
             .select('id, name, city, zip_code, location, logo_url, header_url, about_text, is_premium')
+            .eq('is_active', true)
             .ilike('name', `%${q}%`);
 
         // Filter by location if provided
@@ -78,7 +81,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         // Search products
         let productQuery = supabase
             .from('offers')
-            .select('id, product_name, description, price, image_url, market_id, markets(name, city, zip_code)')
+            .select('id, product_name, description, price, market_id, image_library(url), markets!inner(name, city, zip_code)')
+            .eq('markets.is_active', true)
             .or(`product_name.ilike.%${q}%,description.ilike.%${q}%`)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString());
@@ -107,7 +111,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     else if (city || plz) {
         let locationQuery = supabase
             .from('markets')
-            .select('id, name, city, zip_code, location, logo_url, header_url, about_text, is_premium');
+            .select('id, name, city, zip_code, location, logo_url, header_url, about_text, is_premium')
+            .eq('is_active', true);
 
         if (regionPrefix) {
             locationQuery = locationQuery.ilike('zip_code', `${regionPrefix}%`);
@@ -459,7 +464,7 @@ function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) 
             {/* Image */}
             <div className="relative aspect-[4/3] overflow-hidden">
                 <img
-                    src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
+                    src={offer.image_library?.[0]?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                     alt={offer.product_name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />

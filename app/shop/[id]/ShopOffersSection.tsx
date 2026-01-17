@@ -9,7 +9,9 @@ interface Offer {
     price: string | number;
     unit?: string | null;
     description?: string | null;
-    image_url: string | null;
+    image_library: {
+        url: string;
+    } | null;
     expires_at: string;
     created_at: string;
 }
@@ -58,7 +60,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
             // Fetch initial batch
             const { data, error } = await supabase
                 .from('offers')
-                .select('id, product_name, price, unit, description, image_url, expires_at, created_at')
+                .select('id, product_name, price, unit, description, expires_at, created_at, image_library(url)')
                 .eq('market_id', marketId)
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
@@ -69,7 +71,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                 console.error('Error fetching offers:', error);
                 setOffers([]);
             } else {
-                setOffers(data || []);
+                setOffers((data as unknown as Offer[]) || []);
                 setHasMore((data?.length || 0) >= INITIAL_LOAD && (count || 0) > INITIAL_LOAD);
             }
             setIsLoading(false);
@@ -90,7 +92,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
 
         const { data, error } = await supabase
             .from('offers')
-            .select('id, product_name, price, unit, description, image_url, expires_at, created_at')
+            .select('id, product_name, price, unit, description, expires_at, created_at, image_library(url)')
             .eq('market_id', marketId)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
@@ -100,7 +102,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
         if (error) {
             console.error('Error loading more offers:', error);
         } else if (data) {
-            setOffers((prev) => [...prev, ...data]);
+            setOffers((prev) => [...prev, ...((data as unknown as Offer[]) || [])]);
             setHasMore(data.length >= LOAD_MORE && (totalCount || 0) > start + data.length);
         }
         setIsLoadingMore(false);
@@ -187,7 +189,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                                 {/* Image */}
                                 <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
                                     <img
-                                        src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
+                                        src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
                                         alt={offer.product_name}
                                         className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                                     />

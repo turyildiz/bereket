@@ -52,7 +52,8 @@ function OffersPageContent() {
             // Build base query for count
             let countQuery = supabase
                 .from('offers')
-                .select('id', { count: 'exact', head: true })
+                .select('id, markets!inner(id)', { count: 'exact', head: true })
+                .eq('markets.is_active', true)
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString());
 

@@ -13,6 +13,7 @@ export default async function Home() {
     .from('markets')
     .select('id, name, city, header_url, logo_url, about_text, is_premium')
     .eq('is_premium', true)
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(6);
 
@@ -20,14 +21,16 @@ export default async function Home() {
   const { data: newestMarkets } = await supabase
     .from('markets')
     .select('id, name, city, header_url, logo_url, about_text, is_premium')
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(6);
 
   // Fetch 10 recent offers from premium markets for hero floating cards
   const { data: premiumOffers } = await supabase
     .from('offers')
-    .select('id, product_name, price, image_url, market_id, markets!inner(id, name, city, is_premium)')
+    .select('id, product_name, price, market_id, image_library(url), markets!inner(id, name, city, is_premium, is_active)')
     .eq('markets.is_premium', true)
+    .eq('markets.is_active', true)
     .eq('status', 'live')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
@@ -100,7 +103,7 @@ export default async function Home() {
                     >
                       <div className="relative rounded-2xl overflow-hidden mb-4">
                         <img
-                          src={heroOffers[0].image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
+                          src={(heroOffers[0].image_library as unknown as Array<{ url: string }>)?.[0]?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
                           alt={heroOffers[0].product_name}
                           className="w-full h-40 object-cover"
                         />
@@ -127,7 +130,7 @@ export default async function Home() {
                       >
                         <div className="flex items-center gap-3">
                           <img
-                            src={heroOffers[1].image_url || 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100'}
+                            src={(heroOffers[1].image_library as unknown as Array<{ url: string }>)?.[0]?.url || 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100'}
                             alt={heroOffers[1].product_name}
                             className="w-14 h-14 rounded-xl object-cover"
                           />
