@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { TransactionalEmailsApi, SendSmtpEmail } from '@getbrevo/brevo'
 import crypto from 'crypto'
 
+// Simple in-memory rate limiter
+const rateLimit = new Map<string, { count: number, lastReset: number }>();
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS = 5; // Max 5 attempts per hour per IP
+
 // Create Supabase admin client for server-side operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,13 +17,38 @@ const supabase = createClient(
 // Helper function to get Brevo API instance
 function getBrevoApiInstance() {
   const apiInstance = new TransactionalEmailsApi()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(apiInstance as any).authentications.apiKey.apiKey = process.env.BREVO_API_KEY!
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ; (apiInstance as any).authentications.apiKey.apiKey = process.env.BREVO_API_KEY!
   return apiInstance
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limiting Check
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const now = Date.now();
+    const record = rateLimit.get(ip) || { count: 0, lastReset: now };
+
+    if (now - record.lastReset > RATE_LIMIT_WINDOW) {
+      record.count = 0;
+      record.lastReset = now;
+    }
+
+    if (record.count >= MAX_REQUESTS) {
+      return NextResponse.json(
+        { error: 'Zu viele Anfragen. Bitte versuche es später erneut.' },
+        { status: 429 }
+      )
+    }
+
+    record.count++;
+    rateLimit.set(ip, record);
+
+    // Safety cleanup to prevent memory leaks in long-running instances
+    if (rateLimit.size > 1000) {
+      rateLimit.clear();
+    }
+
     const body = await request.json()
     const { email } = body
 

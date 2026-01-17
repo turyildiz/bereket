@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { createClient } from '@/utils/supabase/server';
 
 // Initialize OpenAI client with OpenRouter
 const openai = new OpenAI({
@@ -9,6 +10,17 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
     try {
+        // Authenticate user
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: 'Unauthorized: Please log in to use this feature' },
+                { status: 401 }
+            );
+        }
+
         const { product_name, price, unit } = await request.json();
 
         if (!product_name || !price || !unit) {
