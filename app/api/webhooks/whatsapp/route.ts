@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getWhatsAppMediaUrl } from './media';
-import { analyzeOffer, generateProductImage } from '@/lib/ai';
+import { analyzeOffer, generateProductImage, assessImageQuality } from '@/lib/ai';
 
 // Create Supabase client for database lookups
 const supabase = createClient(
@@ -155,18 +155,39 @@ export async function POST(request: NextRequest) {
                 productName = content || 'WhatsApp Nachricht';
             }
 
-            // Handle image download and storage
-            let imageUrl: string | null = null;
+            // Analyze the offer with AI first to get category and product info
+            const messageText = caption || content || '';
+            console.log('Analyzing offer with AI...');
 
+            const aiAnalysis = await analyzeOffer(messageText, undefined); // Don't pass image yet
+
+            if (aiAnalysis) {
+                console.log('AI Analysis complete:', aiAnalysis);
+            } else {
+                console.log('AI Analysis failed, using fallback values');
+            }
+
+            // Extract specific product name for granular image library search
+            const specificProductName = aiAnalysis?.product_name || productName;
+            console.log(`🏷️ Specific product identified: "${specificProductName}"`);
+
+            // ========================================
+            // GRANULAR IMAGE LIBRARY LOGIC STARTS HERE
+            // Matching based on specific product (e.g., 'Zitrone', not 'Obst')
+            // ========================================
+            let finalImageLibraryId: string | null = null;
+
+            // Step 1: Check if incoming message has an image
             if (type === 'image' && imageId) {
+                console.log('📸 Incoming image detected, processing...');
+
                 try {
-                    // Step 1: Get the temporary download URL from Meta
+                    // Download the image from WhatsApp
                     const metaDownloadUrl = await getWhatsAppMediaUrl(imageId);
 
                     if (metaDownloadUrl) {
                         console.log('Got Meta download URL, fetching image...');
 
-                        // Step 2: Download the actual image from Meta's servers
                         const imageResponse = await fetch(metaDownloadUrl, {
                             headers: {
                                 'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`
@@ -176,144 +197,192 @@ export async function POST(request: NextRequest) {
                         if (imageResponse.ok) {
                             const imageBuffer = await imageResponse.arrayBuffer();
 
-                            // Step 3: Upload to Supabase Storage
-                            const filename = `whatsapp-${Date.now()}.jpg`;
-
-                            const { error: uploadError } = await adminClient
+                            // Upload temporarily to get a URL for AI assessment
+                            const tempFilename = `temp-${Date.now()}.jpg`;
+                            const { error: tempUploadError } = await adminClient
                                 .storage
                                 .from('offer-images')
-                                .upload(filename, imageBuffer, {
+                                .upload(tempFilename, imageBuffer, {
                                     contentType: 'image/jpeg',
                                     upsert: false
                                 });
 
-                            if (uploadError) {
-                                console.log('Error uploading to storage:', uploadError.message);
-                            } else {
-                                // Step 4: Get the public URL
-                                const { data: publicUrlData } = adminClient
+                            if (!tempUploadError) {
+                                const { data: tempUrlData } = adminClient
                                     .storage
                                     .from('offer-images')
-                                    .getPublicUrl(filename);
+                                    .getPublicUrl(tempFilename);
 
-                                imageUrl = publicUrlData.publicUrl;
-                                console.log('Image successfully saved to Storage and linked to Offer!');
+                                const tempImageUrl = tempUrlData.publicUrl;
+
+                                // Step 2: Assess image quality with AI for this specific product
+                                console.log(`🔍 Assessing if image is a professional photo of "${specificProductName}"...`);
+                                const quality = await assessImageQuality(tempImageUrl, specificProductName);
+                                console.log(`✅ Image quality assessment: ${quality}`);
+
+                                if (quality === 'GOOD') {
+                                    // Step 3: Image is GOOD - Save to image_library
+                                    console.log('✨ Image is professional quality! Saving to image library...');
+
+                                    // Rename the temp file to permanent
+                                    const permanentFilename = `library-${Date.now()}.jpg`;
+
+                                    // Copy to permanent location
+                                    const { error: copyError } = await adminClient
+                                        .storage
+                                        .from('offer-images')
+                                        .upload(permanentFilename, imageBuffer, {
+                                            contentType: 'image/jpeg',
+                                            upsert: false
+                                        });
+
+                                    if (!copyError) {
+                                        const { data: permanentUrlData } = adminClient
+                                            .storage
+                                            .from('offer-images')
+                                            .getPublicUrl(permanentFilename);
+
+                                        // Insert into image_library table with specific product_name
+                                        const { data: libraryEntry, error: libraryError } = await adminClient
+                                            .from('image_library')
+                                            .insert({
+                                                url: permanentUrlData.publicUrl,
+                                                product_name: specificProductName
+                                            })
+                                            .select('id')
+                                            .single();
+
+                                        if (!libraryError && libraryEntry) {
+                                            finalImageLibraryId = libraryEntry.id;
+                                            console.log(`📚 Image saved to library with ID: ${finalImageLibraryId}`);
+                                        } else {
+                                            console.error('Error saving to image_library:', libraryError);
+                                        }
+                                    }
+
+                                    // Clean up temp file
+                                    await adminClient.storage.from('offer-images').remove([tempFilename]);
+                                } else {
+                                    // Image is BAD - clean up and proceed to fallback
+                                    console.log('⚠️ Image quality is not professional, will search library or generate new');
+                                    await adminClient.storage.from('offer-images').remove([tempFilename]);
+                                }
                             }
-                        } else {
-                            console.log('Failed to download image from Meta:', imageResponse.status);
                         }
-                    } else {
-                        console.log('Could not get Meta download URL for image');
                     }
                 } catch (imageError) {
-                    console.log('Error in image processing:', imageError);
+                    console.error('Error processing incoming image:', imageError);
                 }
             }
 
-            // Analyze the offer with AI before saving
-            const messageText = caption || content || '';
-            console.log('Analyzing offer with AI...');
+            // Step 4: If no good image yet, search the image library by specific product name
+            if (!finalImageLibraryId) {
+                console.log(`🔎 Searching image library for product: "${specificProductName}"...`);
 
-            const aiAnalysis = await analyzeOffer(messageText, imageUrl || undefined);
+                const { data: existingLibraryImage, error: searchError } = await adminClient
+                    .from('image_library')
+                    .select('id')
+                    .eq('product_name', specificProductName)
+                    .limit(1)
+                    .single();
 
-            if (aiAnalysis) {
-                console.log('AI Analysis complete:', aiAnalysis);
-            } else {
-                console.log('AI Analysis failed, using fallback values');
-            }
+                if (!searchError && existingLibraryImage) {
+                    finalImageLibraryId = existingLibraryImage.id;
+                    console.log(`♻️ Found existing image in library! ID: ${finalImageLibraryId} (Zero cost reuse)`);
+                } else {
+                    // Step 5: Not found in library - Generate new AI image
+                    console.log('🎨 No image in library, generating new AI image...');
 
-            // Determine final image URL based on AI analysis
-            let finalImageUrl: string;
-            const placeholderUrl = 'https://placehold.co/600x400/eeeeee/999999?text=Kein+Bild';
+                    const generatedImageUrl = await generateProductImage(specificProductName);
 
-            if (aiAnalysis?.is_image_professional && imageUrl) {
-                // Use the original WhatsApp photo if it's professional
-                console.log('Using original professional image');
-                finalImageUrl = imageUrl;
-            } else {
-                // Try to generate a professional AI image
-                console.log('Original image not professional, generating AI image...');
-                const generatedImageUrl = await generateProductImage(
-                    aiAnalysis?.product_name || productName
-                );
+                    if (generatedImageUrl) {
+                        console.log('✅ AI image generated successfully');
 
-                if (generatedImageUrl) {
-                    // Verify if it's a Base64 data URL or regular URL
-                    const isBase64 = generatedImageUrl.startsWith('data:image/');
-                    console.log(`AI image generated successfully (${isBase64 ? 'Base64 data URL' : 'Regular URL'})`);
-                    console.log(`Image length: ${generatedImageUrl.length} characters`);
+                        // Convert Base64 to storage if needed
+                        const isBase64 = generatedImageUrl.startsWith('data:image/');
 
-                    // Convert Base64 to Storage
-                    if (isBase64) {
-                        try {
-                            console.log('Converting Base64 to storage...');
+                        if (isBase64) {
+                            try {
+                                const base64Data = generatedImageUrl.split(',')[1];
+                                const imageBuffer = Buffer.from(base64Data, 'base64');
 
-                            // Extract base64 data (remove data:image/png;base64, prefix)
-                            const base64Data = generatedImageUrl.split(',')[1];
-                            const imageBuffer = Buffer.from(base64Data, 'base64');
-
-                            // Upload to Supabase Storage
-                            const filename = `ai-generated-${Date.now()}.png`;
-                            const { error: uploadError } = await adminClient
-                                .storage
-                                .from('offer-images')
-                                .upload(filename, imageBuffer, {
-                                    contentType: 'image/png',
-                                    upsert: false
-                                });
-
-                            if (uploadError) {
-                                console.log('Error uploading AI image to storage:', uploadError.message);
-                                // Fallback to original image or placeholder
-                                finalImageUrl = imageUrl || placeholderUrl;
-                            } else {
-                                // Get the public URL
-                                const { data: publicUrlData } = adminClient
+                                const filename = `ai-generated-${Date.now()}.png`;
+                                const { error: uploadError } = await adminClient
                                     .storage
                                     .from('offer-images')
-                                    .getPublicUrl(filename);
+                                    .upload(filename, imageBuffer, {
+                                        contentType: 'image/png',
+                                        upsert: false
+                                    });
 
-                                finalImageUrl = publicUrlData.publicUrl;
-                                console.log('AI image successfully saved to Storage!');
+                                if (!uploadError) {
+                                    const { data: publicUrlData } = adminClient
+                                        .storage
+                                        .from('offer-images')
+                                        .getPublicUrl(filename);
+
+                                    // Save to image_library with specific product_name
+                                    const { data: newLibraryEntry, error: newLibraryError } = await adminClient
+                                        .from('image_library')
+                                        .insert({
+                                            url: publicUrlData.publicUrl,
+                                            product_name: specificProductName
+                                        })
+                                        .select('id')
+                                        .single();
+
+                                    if (!newLibraryError && newLibraryEntry) {
+                                        finalImageLibraryId = newLibraryEntry.id;
+                                        console.log(`📚 AI image saved to library with ID: ${finalImageLibraryId}`);
+                                    }
+                                }
+                            } catch (conversionError) {
+                                console.error('Error converting Base64 to storage:', conversionError);
                             }
-                        } catch (conversionError) {
-                            console.log('Error converting Base64 to storage:', conversionError);
-                            finalImageUrl = imageUrl || placeholderUrl;
+                        } else {
+                            // It's already a URL - save directly to library with specific product_name
+                            const { data: newLibraryEntry, error: newLibraryError } = await adminClient
+                                .from('image_library')
+                                .insert({
+                                    url: generatedImageUrl,
+                                    product_name: specificProductName
+                                })
+                                .select('id')
+                                .single();
+
+                            if (!newLibraryError && newLibraryEntry) {
+                                finalImageLibraryId = newLibraryEntry.id;
+                                console.log(`📚 AI image URL saved to library with ID: ${finalImageLibraryId}`);
+                            }
                         }
                     } else {
-                        // It's already a URL
-                        finalImageUrl = generatedImageUrl;
+                        console.error('❌ AI image generation failed');
                     }
-                } else if (imageUrl) {
-                    // Fallback to original image if generation fails
-                    console.log('AI generation failed, using original image');
-                    finalImageUrl = imageUrl;
-                } else {
-                    // Use placeholder if no image available
-                    console.log('No image available, using placeholder');
-                    finalImageUrl = placeholderUrl;
                 }
             }
 
-            console.log(`Final image URL type: ${finalImageUrl.startsWith('data:image/') ? 'Base64 data URL' : 'Regular URL'}`);
+            // ========================================
+            // IMAGE LIBRARY LOGIC ENDS HERE
+            // ========================================
 
             // Calculate expiration date (default 7 days)
             const expiresAtDate = new Date();
             expiresAtDate.setDate(expiresAtDate.getDate() + 7);
 
+            // Insert offer with image_id (NOT image_url)
             const { error: insertError } = await adminClient
                 .from('offers')
                 .insert({
                     market_id: market.id,
                     message_id: messageId, // Store WhatsApp message ID for deduplication
-                    product_name: aiAnalysis?.product_name || productName,
+                    product_name: specificProductName,
                     description: aiAnalysis?.description || 'WhatsApp Draft',
                     price: aiAnalysis?.price ? parseFloat(aiAnalysis.price) : 0,
                     unit: aiAnalysis?.unit || 'Stück',
                     ai_category: aiAnalysis?.ai_category || null,
                     expires_at: expiresAtDate.toISOString(),
                     status: 'draft',
-                    image_url: finalImageUrl,
+                    image_id: finalImageLibraryId, // Use image_id instead of image_url
                     raw_whatsapp_data: body
                 });
 
@@ -321,6 +390,7 @@ export async function POST(request: NextRequest) {
                 console.log('Error creating offer: ', insertError.message);
             } else {
                 console.log('Successfully created draft offer for: ' + market.name);
+                console.log(`Image Library ID used: ${finalImageLibraryId || 'None'}`);
             }
         } catch (error) {
             console.error('Error in background processing:', error);

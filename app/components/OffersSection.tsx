@@ -11,12 +11,15 @@ interface Offer {
     price: string;
     unit?: string | null;
     description?: string | null;
-    image_url: string | null;
+    image_id: string | null;
     expires_at: string;
     market_id: string;
     markets: {
         id: string;
         name: string;
+    } | null;
+    image_library: {
+        url: string;
     } | null;
 }
 
@@ -39,7 +42,7 @@ export default function OffersSection() {
 
             let query = supabase
                 .from('offers')
-                .select('id, product_name, price, unit, description, image_url, expires_at, market_id, markets(id, name)')
+                .select('id, product_name, price, unit, description, image_id, expires_at, market_id, markets(id, name), image_library(url)')
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
                 .order('created_at', { ascending: false });
@@ -155,7 +158,7 @@ export default function OffersSection() {
                                         {/* Image */}
                                         <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
                                             <img
-                                                src={offer.image_url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
+                                                src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                                                 alt={offer.product_name}
                                                 className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                                             />
