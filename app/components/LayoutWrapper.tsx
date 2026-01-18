@@ -71,12 +71,12 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-3 cursor-pointer shrink-0 hover:opacity-90 transition-opacity group">
                             <div className="relative">
-                                <div className="absolute inset-0 bg-gradient-to-br from-[var(--saffron)] to-[var(--terracotta)] rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity"></div>
-                                <div className="relative bg-gradient-to-br from-[var(--saffron)] to-[var(--terracotta)] p-2.5 rounded-2xl text-white shadow-lg group-hover:scale-105 transition-transform">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                                    </svg>
+                                <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform">
+                                    <img
+                                        src="/bereket-logo.png"
+                                        alt="Bereket Market Logo"
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                             </div>
                             <div className="flex flex-col">
@@ -225,11 +225,12 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                             {/* Brand Column */}
                             <div className="lg:col-span-1">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="bg-gradient-to-br from-[var(--saffron)] to-[var(--terracotta)] p-2.5 rounded-2xl text-white shadow-lg">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                                        </svg>
+                                    <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg">
+                                        <img
+                                            src="/bereket-logo.png"
+                                            alt="Bereket Market Logo"
+                                            className="w-full h-full object-cover"
+                                        />
                                     </div>
                                     <span className="text-xl font-bold text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
                                         Bereket Market

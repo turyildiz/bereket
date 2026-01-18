@@ -19,6 +19,21 @@ export const metadata: Metadata = {
   title: "Bereket Market | Frische Angebote von lokalen Märkten",
   description: "Entdecke täglich neue Angebote von türkischen, iranischen, afghanischen und marokkanischen Shops in deiner Nähe. KI-gestützte Angebotserkennung via WhatsApp.",
   keywords: "Bereket, Market, türkische Lebensmittel, orientalische Spezialitäten, Angebote, Deals, Frankfurt, Berlin",
+  icons: {
+    icon: '/favicon.ico',
+  },
+  openGraph: {
+    title: 'Bereket Market | Frische Angebote von lokalen Märkten',
+    description: 'Entdecke täglich neue Angebote von türkischen, iranischen, afghanischen und marokkanischen Shops in deiner Nähe.',
+    images: ['/bereket-logo.png'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bereket Market | Frische Angebote von lokalen Märkten',
+    description: 'Entdecke täglich neue Angebote von türkischen, iranischen, afghanischen und marokkanischen Shops in deiner Nähe.',
+    images: ['/bereket-logo.png'],
+  },
 };
 
 export default function RootLayout({
