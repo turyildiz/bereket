@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import MarketCardWithFavorite from '@/app/components/MarketCardWithFavorite';
 
@@ -18,96 +18,119 @@ interface Market {
     created_at: string;
 }
 
-const INITIAL_LOAD = 18;
-const LOAD_MORE = 12;
+// Available cities for dropdown filter
+const CITIES = [
+    'Alle Städte',
+    'Raunheim',
+    'Frankfurt am Main',
+    'München',
+    'Rüsselsheim am Main'
+];
 
 export default function AllShopsPage() {
-    const [markets, setMarkets] = useState<Market[]>([]);
+    // All markets from database
+    const [allMarkets, setAllMarkets] = useState<Market[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
-    const [totalCount, setTotalCount] = useState<number | null>(null);
 
-    const loadMoreRef = useRef<HTMLDivElement>(null);
+    // Filter states
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCity, setSelectedCity] = useState('Alle Städte');
+    const [showPremiumOnly, setShowPremiumOnly] = useState(false);
+    const [showNewOnly, setShowNewOnly] = useState(false);
 
-    // Initial load
+    // Initial load - fetch ALL active markets once
     useEffect(() => {
-        const fetchInitialMarkets = async () => {
+        const fetchAllMarkets = async () => {
             setIsLoading(true);
             const supabase = createClient();
 
-            // Get total count
-            const { count } = await supabase
-                .from('markets')
-                .select('*', { count: 'exact', head: true })
-                .eq('is_active', true);
-
-            setTotalCount(count);
-
-            // Fetch initial batch
             const { data, error } = await supabase
                 .from('markets')
                 .select('id, slug, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
-                .eq('is_active', true)
-                .order('created_at', { ascending: false })
-                .range(0, INITIAL_LOAD - 1);
+                .eq('is_active', true);
 
             if (error) {
                 console.error('Error fetching markets:', error);
-                setMarkets([]);
+                setAllMarkets([]);
             } else {
-                setMarkets(data || []);
-                setHasMore((data?.length || 0) >= INITIAL_LOAD && (count || 0) > INITIAL_LOAD);
+                setAllMarkets(data || []);
             }
             setIsLoading(false);
         };
 
-        fetchInitialMarkets();
+        fetchAllMarkets();
     }, []);
 
-    // Load more markets
-    const loadMore = useCallback(async () => {
-        if (isLoadingMore || !hasMore) return;
+    // Client-side filtering and sorting
+    const filteredMarkets = useMemo(() => {
+        let result = [...allMarkets];
 
-        setIsLoadingMore(true);
-        const supabase = createClient();
-
-        const start = markets.length;
-        const end = start + LOAD_MORE - 1;
-
-        const { data, error } = await supabase
-            .from('markets')
-            .select('id, slug, name, city, header_url, logo_url, about_text, is_premium, zip_code, created_at')
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
-            .range(start, end);
-
-        if (error) {
-            console.error('Error loading more markets:', error);
-        } else if (data) {
-            setMarkets((prev) => [...prev, ...data]);
-            setHasMore(data.length >= LOAD_MORE && (totalCount || 0) > start + data.length);
-        }
-        setIsLoadingMore(false);
-    }, [markets.length, isLoadingMore, hasMore, totalCount]);
-
-    // Intersection Observer for infinite scroll
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-                    loadMore();
-                }
-            },
-            { threshold: 0.1, rootMargin: '100px' }
-        );
-
-        if (loadMoreRef.current) {
-            observer.observe(loadMoreRef.current);
+        // Filter by search query (name or city)
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            result = result.filter(market =>
+                market.name.toLowerCase().includes(query) ||
+                market.city.toLowerCase().includes(query) ||
+                (market.zip_code && market.zip_code.includes(query))
+            );
         }
 
-        return () => observer.disconnect();
-    }, [loadMore, hasMore, isLoadingMore]);
+        // Filter by selected city
+        if (selectedCity !== 'Alle Städte') {
+            result = result.filter(market => market.city === selectedCity);
+        }
+
+        // Filter by premium only
+        if (showPremiumOnly) {
+            result = result.filter(market => market.is_premium);
+        }
+
+        // Filter by new only (created in last 30 days)
+        if (showNewOnly) {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            result = result.filter(market => new Date(market.created_at) >= thirtyDaysAgo);
+        }
+
+        // Sort: Premium first, then by created_at descending
+        result.sort((a, b) => {
+            // Premium shops first
+            if (a.is_premium && !b.is_premium) return -1;
+            if (!a.is_premium && b.is_premium) return 1;
+            // Then by created_at descending
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+
+        return result;
+    }, [allMarkets, searchQuery, selectedCity, showPremiumOnly, showNewOnly]);
+
+    // Get unique cities with ZIP codes from actual data for the dropdown
+    const availableCities = useMemo(() => {
+        // Create a map of city -> zip_code (use first zip found for each city)
+        const cityZipMap = new Map<string, string>();
+        allMarkets.forEach(m => {
+            if (!cityZipMap.has(m.city) && m.zip_code) {
+                cityZipMap.set(m.city, m.zip_code);
+            }
+        });
+
+        // Sort cities alphabetically and format with ZIP code
+        const sortedCities = Array.from(cityZipMap.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([city, zip]) => ({ label: `${zip} ${city}`, value: city }));
+
+        return [{ label: 'Alle Städte', value: 'Alle Städte' }, ...sortedCities];
+    }, [allMarkets]);
+
+    // Clear all filters
+    const clearFilters = () => {
+        setSearchQuery('');
+        setSelectedCity('Alle Städte');
+        setShowPremiumOnly(false);
+        setShowNewOnly(false);
+    };
+
+    const hasActiveFilters = searchQuery || selectedCity !== 'Alle Städte' || showPremiumOnly || showNewOnly;
 
     return (
         <main className="min-h-screen" style={{ background: 'var(--cream)' }}>
@@ -146,7 +169,7 @@ export default function AllShopsPage() {
                     <div className="py-12 sm:py-16 lg:py-20">
                         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
                             <div className="flex-1">
-                                {/* Badge */}
+                                {/* Dynamic Count Badge */}
                                 <div
                                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 animate-fade-in-up"
                                     style={{ background: 'white', color: 'var(--charcoal)' }}
@@ -155,7 +178,7 @@ export default function AllShopsPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
                                     <span className="text-sm font-bold">
-                                        {totalCount !== null ? `${totalCount} Märkte` : 'Alle Märkte'}
+                                        {isLoading ? 'Laden...' : `${filteredMarkets.length} ${filteredMarkets.length === 1 ? 'Markt' : 'Märkte'}`}
                                     </span>
                                 </div>
 
@@ -173,7 +196,7 @@ export default function AllShopsPage() {
                                 </p>
                             </div>
 
-                            {/* Quick Filters */}
+                            {/* Quick Filter Links */}
                             <div className="flex gap-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                                 <Link
                                     href="/shops/premium"
@@ -205,59 +228,234 @@ export default function AllShopsPage() {
                 </div>
             </section>
 
+            {/* Filter Bar */}
+            <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+                <div
+                    className="p-4 sm:p-6 rounded-2xl shadow-lg animate-fade-in-up"
+                    style={{
+                        background: 'white',
+                        border: '1px solid var(--sand)'
+                    }}
+                >
+                    <div className="flex flex-col lg:flex-row gap-4">
+                        {/* Search Input */}
+                        <div className="flex-1">
+                            <div className="relative">
+                                <svg
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
+                                    style={{ color: 'var(--warm-gray)' }}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    placeholder="Suche nach Name, Stadt oder PLZ..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 rounded-xl border transition-all focus:ring-4 focus:ring-[var(--saffron-glow)] outline-none"
+                                    style={{
+                                        borderColor: 'var(--sand)',
+                                        background: 'var(--cream)',
+                                        color: 'var(--charcoal)'
+                                    }}
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                                        style={{ color: 'var(--warm-gray)' }}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* City Dropdown */}
+                        <div className="w-full lg:w-56">
+                            <div className="relative">
+                                <select
+                                    value={selectedCity}
+                                    onChange={(e) => setSelectedCity(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border transition-all focus:ring-4 focus:ring-[var(--saffron-glow)] outline-none appearance-none cursor-pointer"
+                                    style={{
+                                        borderColor: 'var(--sand)',
+                                        background: 'var(--cream)',
+                                        color: 'var(--charcoal)'
+                                    }}
+                                >
+                                    {availableCities.map(city => (
+                                        <option key={city.value} value={city.value}>{city.label}</option>
+                                    ))}
+                                </select>
+                                <svg
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                                    style={{ color: 'var(--warm-gray)' }}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Feature Toggle Buttons */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowPremiumOnly(!showPremiumOnly)}
+                                className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                                    showPremiumOnly ? 'shadow-lg' : 'hover:shadow-md'
+                                }`}
+                                style={{
+                                    background: showPremiumOnly ? 'var(--gradient-warm)' : 'var(--cream)',
+                                    color: showPremiumOnly ? 'white' : 'var(--charcoal)',
+                                    border: showPremiumOnly ? 'none' : '1px solid var(--sand)'
+                                }}
+                            >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                                Premium
+                            </button>
+                            <button
+                                onClick={() => setShowNewOnly(!showNewOnly)}
+                                className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                                    showNewOnly ? 'shadow-lg' : 'hover:shadow-md'
+                                }`}
+                                style={{
+                                    background: showNewOnly ? 'var(--gradient-fresh)' : 'var(--cream)',
+                                    color: showNewOnly ? 'white' : 'var(--charcoal)',
+                                    border: showNewOnly ? 'none' : '1px solid var(--sand)'
+                                }}
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Neu
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Active Filters & Clear Button */}
+                    {hasActiveFilters && (
+                        <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-2" style={{ borderColor: 'var(--sand)' }}>
+                            <span className="text-sm" style={{ color: 'var(--warm-gray)' }}>Aktive Filter:</span>
+
+                            {searchQuery && (
+                                <span
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+                                    style={{ background: 'var(--sand)', color: 'var(--charcoal)' }}
+                                >
+                                    Suche: "{searchQuery}"
+                                    <button onClick={() => setSearchQuery('')} className="ml-1 hover:text-[var(--terracotta)]">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            )}
+
+                            {selectedCity !== 'Alle Städte' && (
+                                <span
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+                                    style={{ background: 'var(--sand)', color: 'var(--charcoal)' }}
+                                >
+                                    Stadt: {selectedCity}
+                                    <button onClick={() => setSelectedCity('Alle Städte')} className="ml-1 hover:text-[var(--terracotta)]">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            )}
+
+                            {showPremiumOnly && (
+                                <span
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+                                    style={{ background: 'var(--saffron-light)', color: 'var(--charcoal)' }}
+                                >
+                                    Premium Partner
+                                    <button onClick={() => setShowPremiumOnly(false)} className="ml-1 hover:text-[var(--terracotta)]">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            )}
+
+                            {showNewOnly && (
+                                <span
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+                                    style={{ background: 'var(--mint)', color: 'var(--charcoal)' }}
+                                >
+                                    Neu (letzte 30 Tage)
+                                    <button onClick={() => setShowNewOnly(false)} className="ml-1 hover:text-[var(--terracotta)]">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            )}
+
+                            <button
+                                onClick={clearFilters}
+                                className="ml-auto text-sm font-semibold transition-colors cursor-pointer hover:underline"
+                                style={{ color: 'var(--terracotta)' }}
+                            >
+                                Alle Filter zurücksetzen
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </section>
+
             {/* Markets Grid */}
-            <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
                 {isLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--saffron)] border-t-transparent"></div>
                     </div>
-                ) : markets.length > 0 ? (
-                    <>
-                        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                            {markets.map((market, idx) => (
-                                <MarketCardWithFavorite
-                                    key={market.id}
-                                    market={market}
-                                    index={idx < INITIAL_LOAD ? idx : 0}
-                                    variant={market.is_premium ? 'premium' : 'new'}
-                                />
-                            ))}
-                        </div>
-
-                        {/* Load More Trigger */}
-                        <div ref={loadMoreRef} className="py-8">
-                            {isLoadingMore && (
-                                <div className="flex items-center justify-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-[var(--saffron)] border-t-transparent"></div>
-                                </div>
-                            )}
-                            {!hasMore && markets.length > 0 && (
-                                <p className="text-center text-sm" style={{ color: 'var(--warm-gray)' }}>
-                                    Alle {totalCount} Märkte geladen
-                                </p>
-                            )}
-                        </div>
-                    </>
+                ) : filteredMarkets.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                        {filteredMarkets.map((market, idx) => (
+                            <MarketCardWithFavorite
+                                key={market.id}
+                                market={market}
+                                index={idx}
+                                variant={market.is_premium ? 'premium' : 'new'}
+                            />
+                        ))}
+                    </div>
                 ) : (
                     <div className="text-center py-16">
                         <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'var(--sand)' }}>
                             <svg className="w-10 h-10" style={{ color: 'var(--warm-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--charcoal)' }}>
-                            Noch keine Märkte
+                        <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                            Keine Märkte gefunden
                         </h2>
                         <p className="text-lg mb-6" style={{ color: 'var(--warm-gray)' }}>
-                            Bald findest du hier unsere Partner-Märkte.
+                            {hasActiveFilters
+                                ? 'Versuche es mit anderen Filtern oder setze die Filter zurück.'
+                                : 'Bald findest du hier unsere Partner-Märkte.'}
                         </p>
-                        <Link
-                            href="/"
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 hover:scale-105"
-                            style={{ background: 'var(--gradient-warm)', color: 'white' }}
-                        >
-                            Zur Startseite
-                        </Link>
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 hover:scale-105 cursor-pointer"
+                                style={{ background: 'var(--gradient-warm)', color: 'white' }}
+                            >
+                                Filter zurücksetzen
+                            </button>
+                        )}
                     </div>
                 )}
             </section>

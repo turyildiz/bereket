@@ -21,6 +21,8 @@ interface Offer {
         slug: string;
         name: string;
         city: string;
+        zip_code: string | null;
+        logo_url: string | null;
     } | null;
 }
 
@@ -72,7 +74,7 @@ function OffersPageContent() {
             if (filterMode === 'favorites' && hasFavorites && favorites.length > 0) {
                 dataQuery = supabase
                     .from('offers')
-                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city)')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city, zip_code, logo_url)')
                     .eq('markets.is_active', true)
                     .eq('status', 'live')
                     .gt('expires_at', new Date().toISOString())
@@ -82,7 +84,7 @@ function OffersPageContent() {
             } else {
                 dataQuery = supabase
                     .from('offers')
-                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city)')
+                    .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city, zip_code, logo_url)')
                     .eq('markets.is_active', true)
                     .eq('status', 'live')
                     .gt('expires_at', new Date().toISOString())
@@ -120,7 +122,7 @@ function OffersPageContent() {
 
         let query = supabase
             .from('offers')
-            .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city)')
+            .select('id, product_name, price, expires_at, market_id, created_at, image_library(url), markets!inner(id, slug, name, city, zip_code, logo_url)')
             .eq('markets.is_active', true)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
@@ -294,6 +296,10 @@ function OffersPageContent() {
                             {offers.map((offer, idx) => {
                                 const marketData = offer.markets;
                                 const marketName = marketData?.name || 'Lokaler Markt';
+                                const marketLogo = marketData?.logo_url;
+                                const marketLocation = marketData?.zip_code && marketData?.city
+                                    ? `${marketData.zip_code} ${marketData.city}`
+                                    : marketData?.city || '';
                                 const expiresDate = new Date(offer.expires_at);
                                 const daysLeft = Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
@@ -309,11 +315,11 @@ function OffersPageContent() {
                                         }}
                                     >
                                         {/* Image */}
-                                        <div className="relative aspect-[4/3] overflow-hidden">
+                                        <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
                                             <img
                                                 src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                                                 alt={offer.product_name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                                             />
                                             {/* Expiry Badge */}
                                             {daysLeft <= 3 && (
@@ -324,12 +330,23 @@ function OffersPageContent() {
                                                     {daysLeft <= 0 ? 'Läuft heute ab' : `Noch ${daysLeft} Tag${daysLeft > 1 ? 'e' : ''}`}
                                                 </div>
                                             )}
+                                            {/* Market Logo Badge - Top Left */}
+                                            <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg" style={{ background: 'white' }}>
+                                                {marketLogo ? (
+                                                    <img src={marketLogo} alt={marketName} className="w-6 h-6 rounded-full object-cover" />
+                                                ) : (
+                                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
+                                                        {marketName.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <span className="text-xs font-bold" style={{ color: 'var(--charcoal)' }}>{marketName}</span>
+                                            </div>
                                         </div>
 
                                         {/* Content */}
-                                        <div className="p-6">
+                                        <div className="p-5">
                                             <h3
-                                                className="font-bold text-xl mb-2"
+                                                className="font-bold text-lg mb-1"
                                                 style={{
                                                     fontFamily: 'var(--font-playfair)',
                                                     color: 'var(--charcoal)'
@@ -338,12 +355,12 @@ function OffersPageContent() {
                                                 {offer.product_name}
                                             </h3>
 
-                                            <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
-                                                Gültig bis {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} bei {marketName}.
+                                            <p className="text-xs mb-3" style={{ color: 'var(--warm-gray)' }}>
+                                                Gültig bis {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                             </p>
 
                                             <div
-                                                className="flex items-center justify-between pt-4 border-t"
+                                                className="flex items-center justify-between pt-3 border-t"
                                                 style={{ borderColor: 'var(--sand)' }}
                                             >
                                                 <span
@@ -353,16 +370,13 @@ function OffersPageContent() {
                                                     {offer.price}
                                                 </span>
 
-                                                <div className="flex items-center gap-2">
-                                                    <div
-                                                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                                                        style={{ background: 'var(--gradient-warm)' }}
-                                                    >
-                                                        {marketName.charAt(0)}
-                                                    </div>
-                                                    <span className="text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>
-                                                        {marketName}
-                                                    </span>
+                                                {/* Market Location */}
+                                                <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--warm-gray)' }}>
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <span className="font-medium">{marketLocation}</span>
                                                 </div>
                                             </div>
                                         </div>

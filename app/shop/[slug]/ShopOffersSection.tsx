@@ -52,6 +52,33 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     const loadMoreRef = useRef<HTMLDivElement>(null);
+    const categoryScrollRef = useRef<HTMLDivElement>(null);
+    const [showScrollButtons, setShowScrollButtons] = useState(false);
+
+    // Check if scroll buttons are needed
+    useEffect(() => {
+        const checkScrollNeeded = () => {
+            if (categoryScrollRef.current) {
+                const { scrollWidth, clientWidth } = categoryScrollRef.current;
+                setShowScrollButtons(scrollWidth > clientWidth);
+            }
+        };
+
+        checkScrollNeeded();
+        window.addEventListener('resize', checkScrollNeeded);
+        return () => window.removeEventListener('resize', checkScrollNeeded);
+    }, [offers]);
+
+    // Scroll category bar left/right
+    const scrollCategories = (direction: 'left' | 'right') => {
+        if (categoryScrollRef.current) {
+            const scrollAmount = 200;
+            categoryScrollRef.current.scrollBy({
+                left: direction === 'left' ? -scrollAmount : scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
 
     // Initial load
     useEffect(() => {
@@ -189,32 +216,48 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
 
             {/* Category Filter Navigation */}
             {!isLoading && offers.length > 0 && (
-                <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+                <div className="mb-6 animate-fade-in-up relative" style={{ animationDelay: '0.05s' }}>
+                    {/* Left scroll button - desktop only, hidden if no scroll needed */}
+                    {showScrollButtons && (
+                        <button
+                            onClick={() => scrollCategories('left')}
+                            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white shadow-md hover:shadow-lg transition-all hover:scale-110"
+                            style={{ marginLeft: '-4px' }}
+                            aria-label="Scroll left"
+                        >
+                            <svg className="w-4 h-4" style={{ color: 'var(--charcoal)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                    )}
+
                     <div
-                        className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
+                        ref={categoryScrollRef}
+                        className={`flex gap-2 pb-2 overflow-x-auto ${showScrollButtons ? 'md:mx-8' : ''}`}
                         style={{
                             scrollbarWidth: 'none',
-                            msOverflowStyle: 'none'
+                            msOverflowStyle: 'none',
+                            WebkitOverflowScrolling: 'touch'
                         }}
                     >
-                        {CATEGORIES.map((category) => {
+                        {CATEGORIES.filter((category) => {
+                            // Always show "Alle", hide other categories with no offers
+                            if (category.id === 'all') return true;
+                            return getCategoryCount(category.id) > 0;
+                        }).map((category) => {
                             const count = getCategoryCount(category.id);
                             const isActive = selectedCategory === category.id;
-                            const hasOffers = count > 0;
 
                             return (
                                 <button
                                     key={category.id}
                                     onClick={() => setSelectedCategory(category.id)}
-                                    disabled={!hasOffers && category.id !== 'all'}
                                     className={`
                                         flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm
-                                        whitespace-nowrap transition-all duration-200 cursor-pointer
+                                        whitespace-nowrap transition-all duration-200 flex-shrink-0
                                         ${isActive
                                             ? 'shadow-lg scale-[1.02]'
-                                            : hasOffers
-                                                ? 'hover:scale-[1.02] hover:shadow-md'
-                                                : 'opacity-50 cursor-not-allowed'
+                                            : 'hover:scale-[1.02] hover:shadow-md'
                                         }
                                     `}
                                     style={{
@@ -226,27 +269,40 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                                             ? 'none'
                                             : '1px solid rgba(255, 255, 255, 0.5)',
                                         backdropFilter: 'blur(10px)',
+                                        cursor: 'pointer'
                                     }}
                                 >
                                     <span className="text-base">{category.icon}</span>
                                     <span>{category.label}</span>
-                                    {hasOffers && (
-                                        <span
-                                            className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold"
-                                            style={{
-                                                background: isActive
-                                                    ? 'rgba(255, 255, 255, 0.25)'
-                                                    : 'var(--sand)',
-                                                color: isActive ? 'white' : 'var(--warm-gray)'
-                                            }}
-                                        >
-                                            {count}
-                                        </span>
-                                    )}
+                                    <span
+                                        className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold"
+                                        style={{
+                                            background: isActive
+                                                ? 'rgba(255, 255, 255, 0.25)'
+                                                : 'var(--sand)',
+                                            color: isActive ? 'white' : 'var(--warm-gray)'
+                                        }}
+                                    >
+                                        {count}
+                                    </span>
                                 </button>
                             );
                         })}
                     </div>
+
+                    {/* Right scroll button - desktop only, hidden if no scroll needed */}
+                    {showScrollButtons && (
+                        <button
+                            onClick={() => scrollCategories('right')}
+                            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white shadow-md hover:shadow-lg transition-all hover:scale-110"
+                            style={{ marginRight: '-4px' }}
+                            aria-label="Scroll right"
+                        >
+                            <svg className="w-4 h-4" style={{ color: 'var(--charcoal)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
             )}
 

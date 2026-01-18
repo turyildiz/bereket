@@ -31,13 +31,14 @@ type OfferWithMarket = {
     price: string;
     image_library: {
         url: string;
-    }[] | null;
+    } | null;
     market_id: string;
     markets: {
         slug: string;
         name: string;
         city: string;
         zip_code: string | null;
+        logo_url: string | null;
     } | null;
 };
 
@@ -82,7 +83,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         // Search products
         let productQuery = supabase
             .from('offers')
-            .select('id, product_name, description, price, market_id, image_library(url), markets!inner(slug, name, city, zip_code)')
+            .select('id, product_name, description, price, market_id, image_library(url), markets!inner(slug, name, city, zip_code, logo_url)')
             .eq('markets.is_active', true)
             .or(`product_name.ilike.%${q}%,description.ilike.%${q}%`)
             .eq('status', 'live')
@@ -451,6 +452,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 // ============ OFFER CARD COMPONENT ============
 function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) {
     const market = offer.markets;
+    const marketName = market?.name || 'Lokaler Markt';
+    const marketLogo = market?.logo_url;
+    const marketLocation = market?.zip_code && market?.city
+        ? `${market.zip_code} ${market.city}`
+        : market?.city || '';
 
     return (
         <Link
@@ -463,59 +469,58 @@ function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) 
             }}
         >
             {/* Image */}
-            <div className="relative aspect-[4/3] overflow-hidden">
+            <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
                 <img
-                    src={offer.image_library?.[0]?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
+                    src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                     alt={offer.product_name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                {/* Price */}
+                {/* Price Badge - Top Right */}
                 <div className="absolute top-4 right-4 px-4 py-2 rounded-2xl shadow-lg" style={{ background: 'white' }}>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-black" style={{ color: 'var(--cardamom)' }}>
-                            {offer.price}
-                        </span>
-                    </div>
+                    <span className="text-xl font-black" style={{ color: 'var(--terracotta)' }}>
+                        {offer.price}
+                    </span>
+                </div>
+
+                {/* Market Logo Badge - Top Left */}
+                <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg" style={{ background: 'white' }}>
+                    {marketLogo ? (
+                        <img src={marketLogo} alt={marketName} className="w-6 h-6 rounded-full object-cover" />
+                    ) : (
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
+                            {marketName.charAt(0)}
+                        </div>
+                    )}
+                    <span className="text-xs font-bold" style={{ color: 'var(--charcoal)' }}>{marketName}</span>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-5">
                 <h3
-                    className="font-bold text-xl mb-3 group-hover:text-[var(--cardamom)] transition-colors duration-300"
+                    className="font-bold text-lg mb-3 group-hover:text-[var(--cardamom)] transition-colors duration-300"
                     style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
                 >
                     {offer.product_name}
                 </h3>
 
-                <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: 'var(--sand)' }}>
-                    <div className="flex items-center gap-3">
-                        <div
-                            className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                            style={{ background: 'var(--gradient-warm)' }}
-                        >
-                            {market?.name.charAt(0) || 'M'}
-                        </div>
-                        <div>
-                            <div className="text-sm font-bold" style={{ color: 'var(--charcoal)' }}>
-                                {market?.name || 'Lokaler Markt'}
-                            </div>
-                            <div className="text-xs flex items-center gap-1" style={{ color: 'var(--warm-gray)' }}>
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                </svg>
-                                {market?.zip_code} {market?.city}
-                            </div>
-                        </div>
+                <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
+                    {/* Market Location */}
+                    <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--warm-gray)' }}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="font-medium">{marketLocation}</span>
                     </div>
 
                     <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
+                        className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
                         style={{ background: 'var(--mint)' }}
                     >
-                        <svg className="w-5 h-5" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" style={{ color: 'var(--cardamom)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
