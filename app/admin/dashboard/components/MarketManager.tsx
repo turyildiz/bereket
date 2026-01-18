@@ -223,6 +223,9 @@ export default function MarketManager({
         const filteredFeatures = formData.features.filter(feat => feat.trim() !== '');
         const filteredOpeningHours = formData.opening_hours.filter(hour => hour.day.trim() !== '' && hour.time.trim() !== '');
 
+        // NORMALIZE WHATSAPP NUMBERS: Remove '+' prefix for consistent webhook matching
+        const normalizedNumbers = filteredNumbers.map(num => num.replace(/^\+/, '').trim());
+
         let finalLogoUrl = formData.logo_url || null;
         let finalHeaderUrl = formData.header_url || null;
 
@@ -275,12 +278,11 @@ export default function MarketManager({
             name: formData.name,
             city: formData.city,
             zip_code: formData.zip_code || null,
-            location: formData.full_address,
             full_address: formData.full_address,
             latitude: formData.latitude ? parseFloat(formData.latitude) : null,
             longitude: formData.longitude ? parseFloat(formData.longitude) : null,
             customer_phone: formData.customer_phone || null,
-            whatsapp_numbers: filteredNumbers,
+            whatsapp_numbers: normalizedNumbers,
             header_url: finalHeaderUrl,
             logo_url: finalLogoUrl,
             about_text: formData.about_text || null,
@@ -408,12 +410,11 @@ export default function MarketManager({
             {
                 name: 'Yildiz Market',
                 city: 'Frankfurt',
-                location: 'Musterstraße 123, 60311 Frankfurt',
                 full_address: 'Musterstraße 123, 60311 Frankfurt',
                 latitude: 50.1109,
                 longitude: 8.6821,
                 customer_phone: '+49 69 12345678',
-                whatsapp_numbers: ['+49 151 12345678', '+49 151 87654321'],
+                whatsapp_numbers: ['4915112345678', '4915187654321'],
                 logo_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop',
                 header_url: 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=1200&h=400&fit=crop',
                 about_text: 'Willkommen bei Yildiz Market! Seit über 20 Jahren versorgen wir unsere Kunden mit frischen Lebensmitteln aus der Türkei.',
@@ -428,12 +429,11 @@ export default function MarketManager({
             {
                 name: 'Bereket Feinkost',
                 city: 'Berlin',
-                location: 'Kottbusser Damm 78, 10967 Berlin',
                 full_address: 'Kottbusser Damm 78, 10967 Berlin',
                 latitude: 52.4934,
                 longitude: 13.4184,
                 customer_phone: '+49 30 11223344',
-                whatsapp_numbers: ['+49 152 11223344'],
+                whatsapp_numbers: ['4915211223344'],
                 logo_url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=200&h=200&fit=crop',
                 header_url: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=1200&h=400&fit=crop',
                 about_text: 'Bereket Feinkost bietet authentische orientalische Spezialitäten im Herzen von Kreuzberg.',
@@ -447,12 +447,11 @@ export default function MarketManager({
             {
                 name: 'Istanbul Supermarkt',
                 city: 'München',
-                location: 'Goethestraße 15, 80336 München',
                 full_address: 'Goethestraße 15, 80336 München',
                 latitude: 48.1351,
                 longitude: 11.5820,
                 customer_phone: '+49 89 55667788',
-                whatsapp_numbers: ['+49 153 55667788', '+49 153 99887766'],
+                whatsapp_numbers: ['4915355667788', '4915399887766'],
                 logo_url: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=200&h=200&fit=crop',
                 header_url: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1200&h=400&fit=crop',
                 about_text: 'Der größte türkische Supermarkt in München mit über 5000 Produkten.',
@@ -536,17 +535,21 @@ export default function MarketManager({
             )}
 
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>Market Manager</h2>
-                    <p style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>{totalCount} {totalCount === 1 ? 'Markt' : 'Märkte'} registriert{debouncedQuery && ` • Suche: "${debouncedQuery}"`}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <button onClick={() => setShowCreateForm(true)} className="btn-primary px-6 py-3 flex items-center gap-2 cursor-pointer" style={{ fontFamily: 'var(--font-outfit)' }}>
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-[var(--sand)] p-8 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>Market Manager</h1>
+                        <p className="text-base" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>{totalCount} {totalCount === 1 ? 'Markt' : 'Märkte'} registriert{debouncedQuery && ` • Suche: "${debouncedQuery}"`}</p>
+                    </div>
+                    <button
+                        onClick={() => setShowCreateForm(true)}
+                        className="px-6 py-3.5 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-xl cursor-pointer flex items-center gap-3 shadow-lg whitespace-nowrap"
+                        style={{ background: 'linear-gradient(135deg, var(--terracotta) 0%, rgba(225, 139, 85, 0.85) 100%)', color: 'white', fontFamily: 'var(--font-outfit)' }}
+                    >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Neuen Markt erstellen</span>
+                        Neuen Markt erstellen
                     </button>
                 </div>
             </div>
@@ -641,7 +644,7 @@ export default function MarketManager({
                                     <div className="space-y-2">
                                         {formData.whatsapp_numbers.map((num, index) => (
                                             <div key={index} className="flex gap-2">
-                                                <input type="tel" value={num} onChange={(e) => handleWhatsAppChange(index, e.target.value)} placeholder="z.B. +49 151 12345678" className="flex-1 px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
+                                                <input type="tel" value={num} onChange={(e) => handleWhatsAppChange(index, e.target.value)} placeholder="z.B. +49 151 12345678 oder 4915112345678" className="flex-1 px-4 py-3 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--saffron)]" style={{ background: 'white', border: '2px solid var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }} />
                                                 {formData.whatsapp_numbers.length > 1 && (
                                                     <button type="button" onClick={() => handleRemoveWhatsApp(index)} className="p-3 rounded-xl transition-all hover:opacity-70 cursor-pointer" style={{ background: 'rgba(216, 99, 78, 0.1)', color: 'var(--terracotta)' }}>
                                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -658,6 +661,7 @@ export default function MarketManager({
                                             Weitere WhatsApp Nummer
                                         </button>
                                     </div>
+                                    <p className="text-xs mt-2" style={{ color: 'var(--warm-gray)' }}>💡 Tipp: Das '+' wird beim Speichern automatisch entfernt für konsistente Webhook-Erkennung. Mehrere Nummern sind möglich.</p>
                                 </div>
                             </div>
 

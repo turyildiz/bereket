@@ -21,6 +21,7 @@ interface FullOffer {
         name: string;
         slug: string;
         city: string;
+        zip_code: string | null;
     } | null;
     image_library: {
         url: string;
@@ -56,6 +57,8 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
     const [uploadingImage, setUploadingImage] = useState(false);
     const [savingEdit, setSavingEdit] = useState(false);
     const [imageSearchQuery, setImageSearchQuery] = useState('');
+    const [isCreatingNew, setIsCreatingNew] = useState(false);
+    const [expandedMarkets, setExpandedMarkets] = useState<Set<string>>(new Set());
 
     const [editForm, setEditForm] = useState<{
         product_name: string;
@@ -98,7 +101,9 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
                     markets!inner(id, name, slug, city, zip_code), 
                     image_library(url)
                 `)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                // Only show live offers in Offer Management (drafts are in Offer Review)
+                .eq('status', 'live');
 
             // Apply Filters
             if (selectedMarketId) {
@@ -140,6 +145,37 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
     });
 
     // -------------------------------------------------------------------------
+    // MARKET GROUPING LOGIC
+    // -------------------------------------------------------------------------
+    const toggleMarket = (marketId: string) => {
+        setExpandedMarkets(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(marketId)) {
+                newSet.delete(marketId);
+            } else {
+                newSet.add(marketId);
+            }
+            return newSet;
+        });
+    };
+
+    // Group offers by market
+    const offersByMarket = filteredOffers.reduce((acc, offer) => {
+        const marketId = offer.market_id;
+        if (!acc[marketId]) {
+            acc[marketId] = [];
+        }
+        acc[marketId].push(offer);
+        return acc;
+    }, {} as Record<string, FullOffer[]>);
+
+    // Get default expiry date (7 days from now)
+    const getDefaultExpiryDate = () => {
+        const date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        return date.toISOString().split('T')[0];
+    };
+
+    // -------------------------------------------------------------------------
     // EDIT LOGIC
     // -------------------------------------------------------------------------
     const fetchLibraryImages = async () => {
@@ -156,6 +192,7 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
 
     const handleEditClick = (offer: FullOffer) => {
         setEditingId(offer.id);
+        setIsCreatingNew(false);
         setEditForm({
             product_name: offer.product_name,
             description: offer.description || '',
@@ -170,8 +207,26 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
         fetchLibraryImages();
     };
 
+    const handleCreateNewClick = () => {
+        setIsCreatingNew(true);
+        setEditingId('new-offer');
+        setEditForm({
+            product_name: '',
+            description: '',
+            price: '',
+            unit: '',
+            image_id: null,
+            market_id: '',
+            expires_at: getDefaultExpiryDate(),
+            ai_category: '',
+            status: 'draft'
+        });
+        fetchLibraryImages();
+    };
+
     const handleCancelEdit = () => {
         setEditingId(null);
+        setIsCreatingNew(false);
         setShowImageGallery(false);
         setEditForm({
             product_name: '', description: '', price: '', unit: '',
@@ -180,29 +235,64 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
     };
 
     const handleSaveEdit = async () => {
+        // Validation for new offers
+        if (isCreatingNew) {
+            if (!editForm.market_id || !editForm.product_name.trim() || !editForm.price.trim() ||
+                !editForm.unit.trim() || !editForm.ai_category) {
+                showToast('Bitte fülle alle Pflichtfelder aus', 'error');
+                return;
+            }
+        }
+
         setSavingEdit(true);
         try {
-            const { error } = await supabase
-                .from('offers')
-                .update({
-                    product_name: editForm.product_name,
-                    description: editForm.description,
-                    price: parseFloat(editForm.price),
-                    unit: editForm.unit,
-                    image_id: editForm.image_id,
-                    market_id: editForm.market_id,
-                    ai_category: editForm.ai_category,
-                    status: editForm.status,
-                    expires_at: editForm.expires_at ? new Date(editForm.expires_at).toISOString() : undefined
-                })
-                .eq('id', editingId);
+            if (isCreatingNew) {
+                // Create new offer
+                const { error } = await supabase
+                    .from('offers')
+                    .insert({
+                        product_name: editForm.product_name,
+                        description: editForm.description,
+                        price: parseFloat(editForm.price),
+                        unit: editForm.unit,
+                        image_id: editForm.image_id,
+                        market_id: editForm.market_id,
+                        ai_category: editForm.ai_category,
+                        status: editForm.status,
+                        expires_at: editForm.expires_at ? new Date(editForm.expires_at).toISOString() : undefined
+                    });
 
-            if (error) {
-                showToast('Fehler beim Speichern: ' + error.message, 'error');
+                if (error) {
+                    showToast('Fehler beim Erstellen: ' + error.message, 'error');
+                } else {
+                    showToast('Angebot erfolgreich erstellt!', 'success');
+                    fetchOffers();
+                    handleCancelEdit();
+                }
             } else {
-                showToast('Angebot erfolgreich aktualisiert!', 'success');
-                fetchOffers(); // Refresh list
-                handleCancelEdit();
+                // Update existing offer
+                const { error } = await supabase
+                    .from('offers')
+                    .update({
+                        product_name: editForm.product_name,
+                        description: editForm.description,
+                        price: parseFloat(editForm.price),
+                        unit: editForm.unit,
+                        image_id: editForm.image_id,
+                        market_id: editForm.market_id,
+                        ai_category: editForm.ai_category,
+                        status: editForm.status,
+                        expires_at: editForm.expires_at ? new Date(editForm.expires_at).toISOString() : undefined
+                    })
+                    .eq('id', editingId);
+
+                if (error) {
+                    showToast('Fehler beim Speichern: ' + error.message, 'error');
+                } else {
+                    showToast('Angebot erfolgreich aktualisiert!', 'success');
+                    fetchOffers(); // Refresh list
+                    handleCancelEdit();
+                }
             }
         } catch (err) {
             console.error(err);
@@ -282,220 +372,225 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
     return (
         <div className="space-y-6">
             {/* ----------------- HEADER & FILTERS ----------------- */}
-            <div className="space-y-6">
-                <div className="flex flex-col xl:flex-row gap-6 items-end justify-between">
-                    <div>
-                        <h2 className="text-3xl font-bold text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-playfair)' }}>
-                            Angebote Verwaltung
-                        </h2>
-                        <p className="text-[var(--warm-gray)] mt-1">
-                            Verwalten und überwachen Sie alle Angebote an einem Ort.
-                        </p>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row gap-4 w-full xl:w-auto">
-                        {/* Market Search Bar */}
-                        <div className="flex-1 md:w-80 relative">
-                            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            <input
-                                type="text"
-                                placeholder="Suche nach Markt..."
-                                value={marketSearchQuery}
-                                onChange={(e) => setMarketSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-[var(--saffron)] transition-all cursor-text"
-                                style={{ fontFamily: 'var(--font-outfit)' }}
-                            />
+            <div className="space-y-5">
+                {/* Title & Action Bar */}
+                <div className="bg-white rounded-2xl shadow-lg border-2 border-[var(--sand)] p-8">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                Angebote Verwaltung
+                            </h1>
+                            <p className="text-base" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                Verwalten und überwachen Sie alle Angebote an einem Ort
+                            </p>
                         </div>
-
-                        {/* Product Search Bar */}
-                        <div className="flex-1 md:w-80 relative">
-                            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <button
+                            onClick={handleCreateNewClick}
+                            disabled={isCreatingNew}
+                            className="px-6 py-3.5 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-xl cursor-pointer flex items-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            style={{ background: 'linear-gradient(135deg, var(--terracotta) 0%, rgba(225, 139, 85, 0.85) 100%)', color: 'white', fontFamily: 'var(--font-outfit)' }}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                             </svg>
-                            <input
-                                type="text"
-                                placeholder="Suche nach Produkt..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-2xl border-none bg-white shadow-sm focus:ring-2 focus:ring-[var(--saffron)] transition-all cursor-text"
-                                style={{ fontFamily: 'var(--font-outfit)' }}
-                            />
-                        </div>
+                            Neues Angebot
+                        </button>
                     </div>
                 </div>
 
-                {/* Filters Row */}
-                <div className="flex flex-wrap gap-4">
-                    {/* Market Filter */}
-                    <div className="relative min-w-[200px] flex-1">
-                        <select
-                            value={selectedMarketId}
-                            onChange={(e) => setSelectedMarketId(e.target.value)}
-                            className="w-full px-4 py-3 rounded-2xl border-none bg-white shadow-sm appearance-none cursor-pointer focus:ring-2 focus:ring-[var(--saffron)] transition-all"
-                            style={{ fontFamily: 'var(--font-outfit)' }}
-                        >
-                            <option value="">Alle Märkte</option>
-                            {initialMarkets.map(m => (
-                                <option key={m.id} value={m.id}>{m.zip_code} {m.city} - {m.name}</option>
-                            ))}
-                        </select>
-                        <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                {/* Market Search Only */}
+                <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--warm-gray)] group-focus-within:text-[var(--saffron)] transition-colors">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
                     </div>
-
-                    {/* Category Filter */}
-                    <div className="relative min-w-[200px] flex-1">
-                        <select
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="w-full px-4 py-3 rounded-2xl border-none bg-white shadow-sm appearance-none cursor-pointer focus:ring-2 focus:ring-[var(--saffron)] transition-all"
-                            style={{ fontFamily: 'var(--font-outfit)' }}
-                        >
-                            <option value="">Alle Kategorien</option>
-                            <option value="Obst & Gemüse">Obst & Gemüse</option>
-                            <option value="Fleisch & Wurst">Fleisch & Wurst</option>
-                            <option value="Milchprodukte">Milchprodukte</option>
-                            <option value="Backwaren">Backwaren</option>
-                            <option value="Getränke">Getränke</option>
-                            <option value="Sonstiges">Sonstiges</option>
-                        </select>
-                        <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="relative min-w-[180px] flex-1">
-                        <select
-                            value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.target.value)}
-                            className="w-full px-4 py-3 rounded-2xl border-none bg-white shadow-sm appearance-none cursor-pointer focus:ring-2 focus:ring-[var(--saffron)] transition-all"
-                            style={{ fontFamily: 'var(--font-outfit)' }}
-                        >
-                            <option value="">Alle Status</option>
-                            <option value="live">Veröffentlicht</option>
-                            <option value="draft">Entwurf</option>
-                        </select>
-                        <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                    </div>
+                    <input
+                        type="text"
+                        placeholder="Suche nach Markt..."
+                        value={marketSearchQuery}
+                        onChange={(e) => setMarketSearchQuery(e.target.value)}
+                        className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-[var(--sand)] bg-white hover:border-[var(--saffron)]/30 focus:border-[var(--saffron)] focus:ring-4 focus:ring-[var(--saffron)]/10 transition-all cursor-text shadow-sm"
+                        style={{ fontFamily: 'var(--font-outfit)' }}
+                    />
                 </div>
             </div>
 
-            {/* ----------------- TABLE VIEW ----------------- */}
-            <div className="bg-white rounded-3xl shadow-sm border border-[var(--sand)] overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b bg-[var(--sand)]/10" style={{ borderColor: 'var(--sand)' }}>
-                                <th className="p-5 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]">Bild</th>
-                                <th className="p-5 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]">Produkt</th>
-                                <th className="p-5 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]">Markt</th>
-                                <th className="p-5 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]">Preis</th>
-                                <th className="p-5 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]">Status</th>
-                                <th className="p-5 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)] text-right">Aktionen</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={6} className="p-12 text-center">
-                                        <div className="flex justify-center items-center gap-3 text-[var(--warm-gray)]">
-                                            <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
-                                            <span>Lade Angebote...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : filteredOffers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="p-12 text-center text-[var(--warm-gray)] flex flex-col items-center">
-                                        <div className="w-16 h-16 rounded-full bg-[var(--sand)]/30 flex items-center justify-center mb-4 text-[var(--warm-gray)]">
-                                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-                                        </div>
-                                        <p className="text-lg font-semibold text-[var(--charcoal)]">Keine Angebote gefunden</p>
-                                        <p className="text-sm mt-1">Versuchen Sie es mit anderen Filtereinstellungen.</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredOffers.map(offer => {
-                                    const isExpired = new Date(offer.expires_at) < new Date();
-                                    const statusLabel = isExpired ? 'Abgelaufen' : (offer.status === 'live' ? 'Live' : 'Entwurf');
-                                    const statusStyles = isExpired
-                                        ? 'bg-red-50 text-red-700 border-red-100'
-                                        : (offer.status === 'live'
-                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                            : 'bg-amber-50 text-amber-700 border-amber-200');
+            {/* ----------------- COLLAPSIBLE MARKET GROUPS ----------------- */}
+            <div className="space-y-4">
+                {loading ? (
+                    <div className="bg-white rounded-3xl shadow-sm border border-[var(--sand)] p-12 flex justify-center items-center">
+                        <div className="flex items-center gap-3 text-[var(--warm-gray)]">
+                            <svg className="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
+                            <span>Lade Angebote...</span>
+                        </div>
+                    </div>
+                ) : Object.keys(offersByMarket).length === 0 ? (
+                    <div className="bg-white rounded-3xl shadow-sm border border-[var(--sand)] p-16 text-center">
+                        <div className="w-20 h-20 rounded-full bg-[var(--sand)]/30 flex items-center justify-center mx-auto mb-6 text-[var(--warm-gray)]">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                        </div>
+                        <p className="text-xl font-semibold text-[var(--charcoal)] mb-2" style={{ fontFamily: 'var(--font-playfair)' }}>Keine Angebote gefunden</p>
+                        <p className="text-sm text-[var(--warm-gray)]">Versuchen Sie es mit anderen Filtereinstellungen.</p>
+                    </div>
+                ) : (
+                    Object.entries(offersByMarket).map(([marketId, marketOffers]) => {
+                        const market = marketOffers[0]?.markets;
+                        if (!market) return null;
 
-                                    return (
-                                        <tr
-                                            key={offer.id}
-                                            className="group hover:bg-[var(--sand)]/10 transition-colors cursor-pointer border-b last:border-none"
-                                            style={{ borderColor: 'rgba(230, 168, 69, 0.4)' }}
-                                            onClick={(e) => {
-                                                // Prevent edit modal if clicked on action buttons
-                                                if ((e.target as HTMLElement).closest('button')) return;
-                                                handleEditClick(offer);
-                                            }}
-                                        >
-                                            <td className="p-5">
-                                                <div className="w-16 h-16 rounded-xl overflow-hidden shadow-sm border border-[var(--sand)] group-hover:scale-105 transition-transform duration-300">
-                                                    <img
-                                                        src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=100'}
-                                                        alt=""
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                            </td>
-                                            <td className="p-5">
-                                                <div className="font-bold text-lg text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-playfair)' }}>
-                                                    {offer.product_name}
-                                                </div>
-                                                <div className="text-xs font-medium text-[var(--warm-gray)] mt-1 px-2 py-0.5 rounded-md bg-[var(--sand)]/20 inline-block">
-                                                    {offer.ai_category || 'Keine Kategorie'}
-                                                </div>
-                                            </td>
-                                            <td className="p-5">
-                                                <div className="text-sm font-bold text-[var(--charcoal)]">{offer.markets?.name}</div>
-                                                <div className="text-xs text-[var(--warm-gray)]">{offer.markets?.city}</div>
-                                            </td>
-                                            <td className="p-5">
-                                                <div className="font-mono font-bold text-[var(--terracotta)] text-lg">
-                                                    {typeof offer.price === 'number' ? offer.price.toFixed(2) : offer.price} €
-                                                </div>
-                                                <div className="text-xs text-[var(--warm-gray)]">pro {offer.unit}</div>
-                                            </td>
-                                            <td className="p-5">
-                                                <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${statusStyles}`}>
-                                                    {statusLabel}
-                                                </span>
-                                            </td>
-                                            <td className="p-5 text-right">
-                                                <div className="flex justify-end gap-3">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleEditClick(offer); }}
-                                                        className="p-2.5 rounded-xl bg-white border border-[var(--sand)] text-[var(--charcoal)] shadow-sm hover:shadow-md hover:border-[var(--saffron)] hover:text-[var(--saffron)] hover:scale-105 transition-all cursor-pointer"
-                                                        title="Bearbeiten"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(offer.id); }}
-                                                        className="p-2.5 rounded-xl bg-white border border-[var(--sand)] text-[var(--warm-gray)] shadow-sm hover:shadow-md hover:border-red-200 hover:text-red-500 hover:bg-red-50 hover:scale-105 transition-all cursor-pointer"
-                                                        title="Löschen"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                        const isExpanded = expandedMarkets.has(marketId);
+                        const offerCount = marketOffers.length;
+
+                        return (
+                            <div key={marketId} className="bg-white rounded-2xl shadow-md border-2 overflow-hidden transition-all hover:shadow-xl" style={{ borderColor: isExpanded ? 'var(--saffron)' : 'var(--sand)' }}>
+                                {/* Market Header - Clickable */}
+                                <button
+                                    onClick={() => toggleMarket(marketId)}
+                                    className="w-full px-8 py-6 flex items-center justify-between transition-all cursor-pointer group"
+                                    style={{
+                                        background: isExpanded
+                                            ? 'linear-gradient(135deg, rgba(230, 168, 69, 0.08) 0%, rgba(230, 168, 69, 0.02) 100%)'
+                                            : 'transparent'
+                                    }}
+                                >
+                                    <div className="flex items-center gap-5">
+                                        {/* Arrow Icon */}
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isExpanded ? 'bg-[var(--saffron)] shadow-lg' : 'bg-[var(--sand)]/40 group-hover:bg-[var(--sand)]'}`}>
+                                            <svg
+                                                className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-90 text-white' : 'text-[var(--charcoal)]'}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+
+                                        {/* Market Info */}
+                                        <div className="text-left">
+                                            <div className="flex items-center gap-3 mb-1">
+                                                {market.zip_code && (
+                                                    <span className="font-mono text-xs px-3 py-1.5 rounded-lg font-bold" style={{ background: 'var(--saffron)', color: 'white' }}>
+                                                        {market.zip_code}
+                                                    </span>
+                                                )}
+                                                <h3 className="font-bold text-2xl text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-playfair)' }}>
+                                                    {market.name}
+                                                </h3>
+                                            </div>
+                                            <p className="text-sm text-[var(--warm-gray)] flex items-center gap-2" style={{ fontFamily: 'var(--font-outfit)' }}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                                {market.city}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Offer Count Badge */}
+                                    <div className="flex items-center gap-4">
+                                        <div className="px-5 py-2.5 rounded-xl font-bold text-base shadow-sm" style={{ background: 'linear-gradient(135deg, var(--saffron) 0%, rgba(230, 168, 69, 0.8) 100%)', color: 'white', fontFamily: 'var(--font-outfit)' }}>
+                                            {offerCount} {offerCount === 1 ? 'Angebot' : 'Angebote'}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                {/* Offers Table - Collapsible */}
+                                {isExpanded && (
+                                    <div className="border-t-2" style={{ borderColor: 'var(--sand)' }}>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr style={{ background: 'linear-gradient(to bottom, rgba(248, 245, 240, 0.6), rgba(248, 245, 240, 0.3))' }}>
+                                                        <th className="p-4 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]" style={{ fontFamily: 'var(--font-outfit)' }}>Bild</th>
+                                                        <th className="p-4 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]" style={{ fontFamily: 'var(--font-outfit)' }}>Produkt</th>
+                                                        <th className="p-4 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]" style={{ fontFamily: 'var(--font-outfit)' }}>Preis</th>
+                                                        <th className="p-4 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)]" style={{ fontFamily: 'var(--font-outfit)' }}>Status</th>
+                                                        <th className="p-4 font-bold text-xs uppercase tracking-wider text-[var(--warm-gray)] text-right" style={{ fontFamily: 'var(--font-outfit)' }}>Aktionen</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {marketOffers.map(offer => {
+                                                        const isExpired = new Date(offer.expires_at) < new Date();
+                                                        const statusLabel = isExpired ? 'Abgelaufen' : (offer.status === 'live' ? 'Live' : 'Entwurf');
+                                                        const statusStyles = isExpired
+                                                            ? 'bg-red-50 text-red-700 border-red-200'
+                                                            : (offer.status === 'live'
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                : 'bg-amber-50 text-amber-700 border-amber-200');
+
+                                                        return (
+                                                            <tr
+                                                                key={offer.id}
+                                                                className="group hover:bg-gradient-to-r hover:from-[var(--sand)]/20 hover:to-transparent transition-all cursor-pointer border-b border-[var(--sand)]/30 last:border-none"
+                                                                onClick={(e) => {
+                                                                    if ((e.target as HTMLElement).closest('button')) return;
+                                                                    handleEditClick(offer);
+                                                                }}
+                                                            >
+                                                                <td className="p-4">
+                                                                    <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-md border-2 border-[var(--sand)] group-hover:scale-110 group-hover:shadow-xl transition-all duration-300">
+                                                                        <img
+                                                                            src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=100'}
+                                                                            alt=""
+                                                                            className="w-full h-full object-cover"
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <div className="font-bold text-lg text-[var(--charcoal)] mb-1" style={{ fontFamily: 'var(--font-playfair)' }}>
+                                                                        {offer.product_name}
+                                                                    </div>
+                                                                    <div className="text-xs font-semibold text-[var(--warm-gray)] px-3 py-1 rounded-full bg-[var(--sand)]/30 inline-block" style={{ fontFamily: 'var(--font-outfit)' }}>
+                                                                        {offer.ai_category || 'Keine Kategorie'}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <div className="font-mono font-bold text-xl" style={{ color: 'var(--terracotta)' }}>
+                                                                        {typeof offer.price === 'number' ? offer.price.toFixed(2) : parseFloat(offer.price).toFixed(2)} €
+                                                                    </div>
+                                                                    <div className="text-xs text-[var(--warm-gray)] font-medium" style={{ fontFamily: 'var(--font-outfit)' }}>pro {offer.unit || 'Stück'}</div>
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <span className={`px-4 py-2 rounded-full text-xs font-bold border-2 inline-block ${statusStyles}`} style={{ fontFamily: 'var(--font-outfit)' }}>
+                                                                        {statusLabel}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-4 text-right">
+                                                                    <div className="flex justify-end gap-2">
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleEditClick(offer); }}
+                                                                            className="p-3 rounded-xl bg-white border-2 border-[var(--sand)] text-[var(--charcoal)] shadow-sm hover:shadow-lg hover:border-[var(--saffron)] hover:bg-[var(--saffron)] hover:text-white hover:scale-110 transition-all cursor-pointer"
+                                                                            title="Bearbeiten"
+                                                                        >
+                                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(offer.id); }}
+                                                                            className="p-3 rounded-xl bg-white border-2 border-[var(--sand)] text-[var(--warm-gray)] shadow-sm hover:shadow-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:scale-110 transition-all cursor-pointer"
+                                                                            title="Löschen"
+                                                                        >
+                                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
             </div>
 
             {/* ----------------- EDIT MODAL ----------------- */}
@@ -507,10 +602,10 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
                         <div className="px-8 py-6 border-b flex justify-between items-center bg-white/50 backdrop-blur-sm sticky top-0 z-10" style={{ borderColor: 'var(--sand)' }}>
                             <div>
                                 <h3 className="text-2xl font-bold text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-playfair)' }}>
-                                    Angebot bearbeiten
+                                    {isCreatingNew ? 'Angebot erstellen' : 'Angebot bearbeiten'}
                                 </h3>
                                 <p className="text-sm text-[var(--warm-gray)] mt-1">
-                                    Bearbeiten Sie die Details und das Erscheinungsbild des Angebots.
+                                    {isCreatingNew ? 'Erstellen Sie ein neues Angebot für Ihren Markt.' : 'Bearbeiten Sie die Details und das Erscheinungsbild des Angebots.'}
                                 </p>
                             </div>
                             <button
@@ -531,17 +626,28 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
 
                                     {/* Image Preview Card */}
                                     <div className="relative group rounded-3xl overflow-hidden shadow-lg aspect-[4/3] bg-white border border-[var(--sand)]">
-                                        <img
-                                            src={(() => {
-                                                if (editForm.image_id) {
-                                                    const libImg = libraryImages.find(i => i.id === editForm.image_id);
-                                                    if (libImg) return libImg.url;
-                                                }
-                                                return 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
-                                            })()}
-                                            alt="Preview"
-                                            className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-                                        />
+                                        {editForm.image_id || !isCreatingNew ? (
+                                            <img
+                                                src={(() => {
+                                                    if (editForm.image_id) {
+                                                        const libImg = libraryImages.find(i => i.id === editForm.image_id);
+                                                        if (libImg) return libImg.url;
+                                                    }
+                                                    return 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
+                                                })()}
+                                                alt="Preview"
+                                                className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                                <div className="w-24 h-24 rounded-2xl bg-white/80 flex items-center justify-center shadow-lg">
+                                                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                                <p className="mt-4 text-sm font-semibold text-gray-500" style={{ fontFamily: 'var(--font-outfit)' }}>Kein Bild ausgewählt</p>
+                                            </div>
+                                        )}
 
                                         {/* Overlay with Change Button */}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-[2px]">
@@ -600,7 +706,7 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
                                                     style={{ borderColor: 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
                                                 >
                                                     {initialMarkets.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.name} ({m.city})</option>
+                                                        <option key={m.id} value={m.id}>{m.name} ({m.zip_code} {m.city})</option>
                                                     ))}
                                                 </select>
                                                 <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -709,7 +815,8 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
                         <div className="px-8 py-6 border-t bg-white sticky bottom-0 z-10 flex justify-end gap-4" style={{ borderColor: 'var(--sand)' }}>
                             <button
                                 onClick={handleCancelEdit}
-                                className="px-8 py-3 rounded-xl font-bold transition-all hover:bg-gray-100 text-[var(--warm-gray)] cursor-pointer"
+                                className="px-8 py-3 rounded-xl font-bold transition-all border-2 hover:bg-gray-50 hover:border-gray-300 cursor-pointer shadow-sm"
+                                style={{ borderColor: 'var(--sand)', color: 'var(--charcoal)' }}
                             >
                                 Abbrechen
                             </button>

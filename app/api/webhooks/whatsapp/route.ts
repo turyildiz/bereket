@@ -41,12 +41,14 @@ export async function POST(request: NextRequest) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Parse request body first
-    const body = await request.json();
-
-    // Debug: Log entire raw payload from Meta
-    console.log("--- New Incoming Webhook ---");
-    console.log(JSON.stringify(body, null, 2));
+    // Parse request body with error handling
+    let body;
+    try {
+        body = await request.json();
+    } catch (error) {
+        console.error('JSON parse error:', error);
+        return new Response('Invalid JSON', { status: 400 });
+    }
 
     // Extract message details from Meta's webhook payload structure
     const entry = body.entry?.[0];
@@ -66,19 +68,44 @@ export async function POST(request: NextRequest) {
 
     const message = messages[0];
     const messageId = message.id; // WhatsApp message ID (wamid)
-    const from = message.from; // Sender's phone number
     const type = message.type; // 'text', 'image', etc.
 
+    // EXTRACT SENDER NUMBER: Use wa_id from contacts (canonical WhatsApp ID from Meta)
+    // This is the most reliable field for the sender's phone number
+    const senderNumber = value?.contacts?.[0]?.wa_id || message.from;
+
+    console.log('=== AUTHORIZATION DEBUG ===');
+    console.log('Raw sender (message.from):', message.from);
+    console.log('Canonical sender (wa_id):', value?.contacts?.[0]?.wa_id);
+    console.log('Using senderNumber:', senderNumber);
+
+    // NORMALIZE PHONE NUMBER: Remove '+' prefix and any spaces for consistent matching
+    const normalizedSender = senderNumber.replace(/^\+/, '').replace(/\s/g, '');
+    console.log('Normalized sender:', normalizedSender);
+
     // AUTHORIZATION CHECK: Verify sender is from an authorized market
-    // This happens BEFORE deduplication and any AI processing to prevent costs
+    // Query ALL markets (both active and inactive) to distinguish between:
+    // 1. Unregistered number (no market found) -> Send "access denied"
+    // 2. Inactive market (market found but is_active=false) -> Send "account paused"
+    console.log('Querying markets table with contains:', [normalizedSender]);
+
     const { data: market, error: marketError } = await supabase
         .from('markets')
-        .select('id, name, is_active')
-        .contains('whatsapp_numbers', [from])
-        .single();
+        .select('id, name, is_active, whatsapp_numbers')
+        .contains('whatsapp_numbers', [normalizedSender])
+        .maybeSingle();
+
+    if (marketError) {
+        console.error('Market query error:', marketError);
+    }
+
+    if (market) {
+        console.log('✅ Market found:', market.name, '| Active:', market.is_active);
+        console.log('Authorized numbers for this market:', market.whatsapp_numbers);
+    }
 
     if (!market) {
-        console.log('Unauthorized number: ' + from);
+        console.log('❌ UNAUTHORIZED - No market found for number:', normalizedSender);
 
         // Send WhatsApp reply to unauthorized sender
         try {
@@ -91,7 +118,7 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify({
                     messaging_product: 'whatsapp',
                     recipient_type: 'individual',
-                    to: from,
+                    to: senderNumber,
                     type: 'text',
                     text: {
                         preview_url: false,
@@ -101,8 +128,8 @@ export async function POST(request: NextRequest) {
             });
 
             const responseData = await response.json();
-            console.log('META RESPONSE BODY:', JSON.stringify(responseData, null, 2)); // This reveals the real error
-            console.log('Sent access denied message to:', from);
+            console.log('META RESPONSE BODY:', JSON.stringify(responseData, null, 2));
+            console.log('Sent access denied message to:', senderNumber);
         } catch (replyError) {
             console.error('Error sending WhatsApp reply:', replyError);
         }
@@ -111,9 +138,9 @@ export async function POST(request: NextRequest) {
         return new Response('Success', { status: 200 });
     }
 
-    // CHECK IF MARKET IS ACTIVE
+    // CHECK IF MARKET IS ACTIVE (after confirming market exists)
     if (!market.is_active) {
-        console.log('Inactive market attempted to send message: ' + market.name);
+        console.log('⏸️ INACTIVE MARKET - Account paused:', market.name);
 
         // Send WhatsApp reply to inactive market
         try {
@@ -126,18 +153,18 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify({
                     messaging_product: 'whatsapp',
                     recipient_type: 'individual',
-                    to: from,
+                    to: senderNumber,
                     type: 'text',
                     text: {
-                        preview_url: false,
-                        body: "⏸️ Ihr Account ist aktuell pausiert. Bitte kontaktieren Sie Ihren Berater."
+                        preview_url: true,
+                        body: "⏸️ Ihr Account ist aktuell pausiert. Bitte kontaktieren Sie Ihren Berater.\n\nBesuchen Sie unsere Website: http://www.bereket.market"
                     }
                 })
             });
 
             const responseData = await response.json();
             console.log('META RESPONSE BODY:', JSON.stringify(responseData, null, 2));
-            console.log('Sent account paused message to:', from);
+            console.log('Sent account paused message to:', senderNumber);
         } catch (replyError) {
             console.error('Error sending WhatsApp reply:', replyError);
         }
@@ -176,7 +203,7 @@ export async function POST(request: NextRequest) {
                 console.log('Image ID detected: ' + imageId);
             }
 
-            console.log('New Message from:', from, 'Type:', type);
+            console.log('New Message from:', senderNumber, 'Type:', type);
             if (content) console.log('  Content:', content);
             if (caption) console.log('  Caption:', caption);
 

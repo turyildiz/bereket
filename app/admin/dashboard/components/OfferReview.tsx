@@ -44,6 +44,7 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
     const [markets, setMarkets] = useState<Array<{ id: string; name: string; city: string; zip_code: string | null }>>([]);
     const [marketSearchQuery, setMarketSearchQuery] = useState('');
     const [showMarketDropdown, setShowMarketDropdown] = useState(false);
+    const [selectedMarketFilter, setSelectedMarketFilter] = useState<string>(''); // New filter state
     const [editForm, setEditForm] = useState<{
         product_name: string;
         description: string;
@@ -444,42 +445,51 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
-                        Angebote Prüfen
-                    </h2>
-                    <p className="text-sm mt-1" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
-                        {draftOffers.length} {draftOffers.length === 1 ? 'Angebot wartet' : 'Angebote warten'} auf Freigabe
-                    </p>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={handleCreateNewClick}
-                        disabled={isCreatingNew}
-                        className="px-4 py-2 rounded-xl font-semibold transition-all hover:opacity-90 cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ background: 'var(--terracotta)', color: 'white', fontFamily: 'var(--font-outfit)' }}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Neues Angebot
-                    </button>
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-[var(--sand)] p-8 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                            Angebote Prüfen
+                        </h1>
+                        <p className="text-base" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                            {draftOffers.filter(offer => !selectedMarketFilter || offer.market_id === selectedMarketFilter).length} {draftOffers.filter(offer => !selectedMarketFilter || offer.market_id === selectedMarketFilter).length === 1 ? 'Angebot wartet' : 'Angebote warten'} auf Freigabe
+                        </p>
+                    </div>
                     <button
                         onClick={() => fetchDraftOffers()}
-                        className="px-4 py-2 rounded-xl font-semibold transition-all hover:opacity-80 cursor-pointer flex items-center gap-2"
-                        style={{ background: 'var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}
+                        className="px-6 py-3.5 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-xl cursor-pointer flex items-center gap-3 shadow-lg whitespace-nowrap"
+                        style={{ background: 'linear-gradient(135deg, var(--sand) 0%, rgba(217, 201, 166, 0.7) 100%)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         Aktualisieren
                     </button>
                 </div>
             </div>
 
+            {/* Market Filter */}
+            <div className="relative w-full sm:w-80">
+                <select
+                    value={selectedMarketFilter}
+                    onChange={(e) => setSelectedMarketFilter(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border-none bg-white shadow-sm appearance-none cursor-pointer focus:ring-2 focus:ring-[var(--saffron)] transition-all"
+                    style={{ fontFamily: 'var(--font-outfit)' }}
+                >
+                    <option value="">Alle Märkte</option>
+                    {markets.map(m => (
+                        <option key={m.id} value={m.id}>
+                            {m.zip_code} {m.city} - {m.name}
+                        </option>
+                    ))}
+                </select>
+                <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+
             {/* Draft Offers List */}
-            {draftOffers.length === 0 ? (
+            {draftOffers.filter(offer => !selectedMarketFilter || offer.market_id === selectedMarketFilter).length === 0 ? (
                 <div className="glass-card p-12 text-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(107, 142, 122, 0.1)' }}>
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--cardamom)' }}>
@@ -495,463 +505,465 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {draftOffers.map((offer) => {
-                        const market = offer.markets;
-                        const expiresDate = new Date(offer.expires_at);
-                        const createdDate = new Date(offer.created_at);
-                        const isPublishing = publishingId === offer.id;
-                        const isEditing = editingId === offer.id;
+                    {draftOffers
+                        .filter(offer => !selectedMarketFilter || offer.market_id === selectedMarketFilter)
+                        .map((offer) => {
+                            const market = offer.markets;
+                            const expiresDate = new Date(offer.expires_at);
+                            const createdDate = new Date(offer.created_at);
+                            const isPublishing = publishingId === offer.id;
+                            const isEditing = editingId === offer.id;
 
-                        return (
-                            <div
-                                key={offer.id}
-                                className="glass-card overflow-hidden relative"
-                                style={{ border: '2px solid rgba(230, 168, 69, 0.3)' }}
-                            >
-                                {/* Edit/Delete Buttons */}
-                                {!isEditing && (
-                                    <div className="absolute top-3 right-3 flex gap-2 z-10">
-                                        <button
-                                            onClick={() => handleEditClick(offer)}
-                                            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
-                                            style={{ background: 'rgba(255, 255, 255, 0.9)', color: 'var(--charcoal)' }}
-                                            title="Bearbeiten"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteClick(offer.id)}
-                                            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
-                                            style={{ background: 'rgba(225, 139, 85, 0.9)', color: 'white' }}
-                                            title="Löschen"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Image */}
-                                <div className="relative aspect-[4/3] overflow-hidden" style={{ background: isCreatingNew && !editForm.image_id ? '#e5e7eb' : '#f8f5f0' }}>
-                                    {isCreatingNew && !editForm.image_id ? (
-                                        // Grey placeholder with icon for new offers
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <svg className="w-24 h-24" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" strokeWidth="1">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
+                            return (
+                                <div
+                                    key={offer.id}
+                                    className="glass-card overflow-hidden relative"
+                                    style={{ border: '2px solid rgba(230, 168, 69, 0.3)' }}
+                                >
+                                    {/* Edit/Delete Buttons */}
+                                    {!isEditing && (
+                                        <div className="absolute top-3 right-3 flex gap-2 z-10">
+                                            <button
+                                                onClick={() => handleEditClick(offer)}
+                                                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+                                                style={{ background: 'rgba(255, 255, 255, 0.9)', color: 'var(--charcoal)' }}
+                                                title="Bearbeiten"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(offer.id)}
+                                                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+                                                style={{ background: 'rgba(225, 139, 85, 0.9)', color: 'white' }}
+                                                title="Löschen"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
                                         </div>
-                                    ) : (
-                                        <img
-                                            src={(() => {
-                                                // In edit mode, check if user selected a DIFFERENT image
-                                                if (isEditing && editForm.image_id && editForm.image_id !== originalImageId && libraryImages.length > 0) {
-                                                    // User selected a new image - find it in library
-                                                    const selectedImage = libraryImages.find(img => img.id === editForm.image_id);
-                                                    if (selectedImage) {
-                                                        return selectedImage.url;
-                                                    }
-                                                }
-
-                                                // Fall back to the offer's current image
-                                                const currentImageUrl = offer.image_library?.url;
-                                                if (currentImageUrl) {
-                                                    return currentImageUrl;
-                                                }
-
-                                                // Final fallback to placeholder for existing offers
-                                                return 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
-                                            })()}
-                                            alt={offer.product_name}
-                                            className="w-full h-full object-contain"
-                                            onError={(e) => {
-                                                e.currentTarget.src = 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
-                                            }}
-                                        />
                                     )}
-                                    <div
-                                        className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold"
-                                        style={{ background: 'var(--saffron)', color: 'white', fontFamily: 'var(--font-outfit)' }}
-                                    >
-                                        Entwurf
+
+                                    {/* Image */}
+                                    <div className="relative aspect-[4/3] overflow-hidden" style={{ background: isCreatingNew && !editForm.image_id ? '#e5e7eb' : '#f8f5f0' }}>
+                                        {isCreatingNew && !editForm.image_id ? (
+                                            // Grey placeholder with icon for new offers
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <svg className="w-24 h-24" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" strokeWidth="1">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                        ) : (
+                                            <img
+                                                src={(() => {
+                                                    // In edit mode, check if user selected a DIFFERENT image
+                                                    if (isEditing && editForm.image_id && editForm.image_id !== originalImageId && libraryImages.length > 0) {
+                                                        // User selected a new image - find it in library
+                                                        const selectedImage = libraryImages.find(img => img.id === editForm.image_id);
+                                                        if (selectedImage) {
+                                                            return selectedImage.url;
+                                                        }
+                                                    }
+
+                                                    // Fall back to the offer's current image
+                                                    const currentImageUrl = offer.image_library?.url;
+                                                    if (currentImageUrl) {
+                                                        return currentImageUrl;
+                                                    }
+
+                                                    // Final fallback to placeholder for existing offers
+                                                    return 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
+                                                })()}
+                                                alt={offer.product_name}
+                                                className="w-full h-full object-contain"
+                                                onError={(e) => {
+                                                    e.currentTarget.src = 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600';
+                                                }}
+                                            />
+                                        )}
+                                        <div
+                                            className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold"
+                                            style={{ background: 'var(--saffron)', color: 'white', fontFamily: 'var(--font-outfit)' }}
+                                        >
+                                            Entwurf
+                                        </div>
+
+                                        {/* Change Image Button (Edit Mode Only) */}
+                                        {isEditing && (
+                                            <button
+                                                onClick={() => {
+                                                    handleChangeImageClick();
+                                                    setTouchedFields(prev => ({ ...prev, image_id: true }));
+                                                }}
+                                                className={`absolute bottom-4 right-4 px-4 py-2.5 rounded-xl font-bold transition-all hover:scale-105 cursor-pointer flex items-center gap-2 shadow-2xl ${isCreatingNew && touchedFields.image_id && !editForm.image_id ? 'ring-2 ring-[var(--terracotta)]' : ''}`}
+                                                style={{ background: isCreatingNew && !editForm.image_id ? 'var(--terracotta)' : 'var(--saffron)', color: 'white', fontFamily: 'var(--font-outfit)', fontSize: '1rem' }}
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                {isCreatingNew && !editForm.image_id ? 'Bild auswählen *' : 'Bild ändern'}
+                                            </button>
+                                        )}
                                     </div>
 
-                                    {/* Change Image Button (Edit Mode Only) */}
-                                    {isEditing && (
-                                        <button
-                                            onClick={() => {
-                                                handleChangeImageClick();
-                                                setTouchedFields(prev => ({ ...prev, image_id: true }));
-                                            }}
-                                            className={`absolute bottom-4 right-4 px-4 py-2.5 rounded-xl font-bold transition-all hover:scale-105 cursor-pointer flex items-center gap-2 shadow-2xl ${isCreatingNew && touchedFields.image_id && !editForm.image_id ? 'ring-2 ring-[var(--terracotta)]' : ''}`}
-                                            style={{ background: isCreatingNew && !editForm.image_id ? 'var(--terracotta)' : 'var(--saffron)', color: 'white', fontFamily: 'var(--font-outfit)', fontSize: '1rem' }}
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                            {isCreatingNew && !editForm.image_id ? 'Bild auswählen *' : 'Bild ändern'}
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* Content */}
-                                <div className="p-4 space-y-3">
-                                    {isEditing ? (
-                                        <>
-                                            {/* Edit Mode */}
-                                            <div className="space-y-3">
-                                                {isCreatingNew && (
-                                                    <div className="relative">
-                                                        <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.market_id && !editForm.market_id ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
-                                                            Markt auswählen
-                                                            <span style={{ color: 'var(--terracotta)' }}>*</span>
-                                                        </label>
+                                    {/* Content */}
+                                    <div className="p-4 space-y-3">
+                                        {isEditing ? (
+                                            <>
+                                                {/* Edit Mode */}
+                                                <div className="space-y-3">
+                                                    {isCreatingNew && (
                                                         <div className="relative">
-                                                            <input
-                                                                type="text"
-                                                                value={marketSearchQuery || (editForm.market_id ? (() => {
-                                                                    const selected = markets.find(m => m.id === editForm.market_id);
-                                                                    return selected ? `${selected.zip_code || '—'} · ${selected.name}, ${selected.city}` : '';
-                                                                })() : '')}
-                                                                onChange={(e) => {
-                                                                    setMarketSearchQuery(e.target.value);
-                                                                    setShowMarketDropdown(true);
-                                                                    if (editForm.market_id) {
-                                                                        setEditForm({ ...editForm, market_id: '' });
+                                                            <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.market_id && !editForm.market_id ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
+                                                                Markt auswählen
+                                                                <span style={{ color: 'var(--terracotta)' }}>*</span>
+                                                            </label>
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="text"
+                                                                    value={marketSearchQuery || (editForm.market_id ? (() => {
+                                                                        const selected = markets.find(m => m.id === editForm.market_id);
+                                                                        return selected ? `${selected.zip_code || '—'} · ${selected.name}, ${selected.city}` : '';
+                                                                    })() : '')}
+                                                                    onChange={(e) => {
+                                                                        setMarketSearchQuery(e.target.value);
+                                                                        setShowMarketDropdown(true);
+                                                                        if (editForm.market_id) {
+                                                                            setEditForm({ ...editForm, market_id: '' });
+                                                                        }
+                                                                    }}
+                                                                    onFocus={() => setShowMarketDropdown(true)}
+                                                                    onBlur={() => setTouchedFields(prev => ({ ...prev, market_id: true }))}
+                                                                    placeholder="PLZ oder Name eingeben..."
+                                                                    className={`w-full px-3 py-2 rounded-lg border bg-white pr-8 transition-colors ${touchedFields.market_id && !editForm.market_id ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
+                                                                    style={{ borderColor: touchedFields.market_id && !editForm.market_id ? 'var(--terracotta)' : 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
+                                                                />
+                                                                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--warm-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                                </svg>
+                                                            </div>
+                                                            {showMarketDropdown && (
+                                                                <div
+                                                                    className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg border"
+                                                                    style={{ background: 'white', borderColor: 'var(--sand)' }}
+                                                                >
+                                                                    {markets
+                                                                        .filter(market => {
+                                                                            const query = marketSearchQuery.toLowerCase();
+                                                                            return !query ||
+                                                                                market.name.toLowerCase().includes(query) ||
+                                                                                market.city.toLowerCase().includes(query) ||
+                                                                                (market.zip_code && market.zip_code.includes(query));
+                                                                        })
+                                                                        .map(market => (
+                                                                            <button
+                                                                                key={market.id}
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setEditForm({ ...editForm, market_id: market.id });
+                                                                                    setMarketSearchQuery('');
+                                                                                    setShowMarketDropdown(false);
+                                                                                }}
+                                                                                className="w-full px-3 py-2 text-left hover:bg-[var(--sand)] transition-colors cursor-pointer flex items-center gap-2"
+                                                                                style={{ fontFamily: 'var(--font-outfit)' }}
+                                                                            >
+                                                                                <span className="font-mono text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--cream)', color: 'var(--charcoal)' }}>
+                                                                                    {market.zip_code || '—'}
+                                                                                </span>
+                                                                                <span className="truncate">{market.name}, {market.city}</span>
+                                                                            </button>
+                                                                        ))
                                                                     }
-                                                                }}
-                                                                onFocus={() => setShowMarketDropdown(true)}
-                                                                onBlur={() => setTouchedFields(prev => ({ ...prev, market_id: true }))}
-                                                                placeholder="PLZ oder Name eingeben..."
-                                                                className={`w-full px-3 py-2 rounded-lg border bg-white pr-8 transition-colors ${touchedFields.market_id && !editForm.market_id ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
-                                                                style={{ borderColor: touchedFields.market_id && !editForm.market_id ? 'var(--terracotta)' : 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
-                                                            />
-                                                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--warm-gray)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                                            </svg>
-                                                        </div>
-                                                        {showMarketDropdown && (
-                                                            <div
-                                                                className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-lg shadow-lg border"
-                                                                style={{ background: 'white', borderColor: 'var(--sand)' }}
-                                                            >
-                                                                {markets
-                                                                    .filter(market => {
+                                                                    {markets.filter(market => {
                                                                         const query = marketSearchQuery.toLowerCase();
                                                                         return !query ||
                                                                             market.name.toLowerCase().includes(query) ||
                                                                             market.city.toLowerCase().includes(query) ||
                                                                             (market.zip_code && market.zip_code.includes(query));
-                                                                    })
-                                                                    .map(market => (
-                                                                        <button
-                                                                            key={market.id}
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setEditForm({ ...editForm, market_id: market.id });
-                                                                                setMarketSearchQuery('');
-                                                                                setShowMarketDropdown(false);
-                                                                            }}
-                                                                            className="w-full px-3 py-2 text-left hover:bg-[var(--sand)] transition-colors cursor-pointer flex items-center gap-2"
-                                                                            style={{ fontFamily: 'var(--font-outfit)' }}
-                                                                        >
-                                                                            <span className="font-mono text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--cream)', color: 'var(--charcoal)' }}>
-                                                                                {market.zip_code || '—'}
-                                                                            </span>
-                                                                            <span className="truncate">{market.name}, {market.city}</span>
-                                                                        </button>
-                                                                    ))
-                                                                }
-                                                                {markets.filter(market => {
-                                                                    const query = marketSearchQuery.toLowerCase();
-                                                                    return !query ||
-                                                                        market.name.toLowerCase().includes(query) ||
-                                                                        market.city.toLowerCase().includes(query) ||
-                                                                        (market.zip_code && market.zip_code.includes(query));
-                                                                }).length === 0 && (
-                                                                        <div className="px-3 py-2 text-sm" style={{ color: 'var(--warm-gray)' }}>
-                                                                            Kein Markt gefunden
-                                                                        </div>
-                                                                    )}
-                                                            </div>
-                                                        )}
-                                                        {touchedFields.market_id && !editForm.market_id && (
+                                                                    }).length === 0 && (
+                                                                            <div className="px-3 py-2 text-sm" style={{ color: 'var(--warm-gray)' }}>
+                                                                                Kein Markt gefunden
+                                                                            </div>
+                                                                        )}
+                                                                </div>
+                                                            )}
+                                                            {touchedFields.market_id && !editForm.market_id && (
+                                                                <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
+                                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    Bitte wähle einen Markt aus
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
+                                                            Produktname
+                                                            {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={editForm.product_name}
+                                                            onChange={(e) => setEditForm({ ...editForm, product_name: e.target.value })}
+                                                            onBlur={() => setTouchedFields(prev => ({ ...prev, product_name: true }))}
+                                                            className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
+                                                            style={{ borderColor: touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)', fontFamily: 'var(--font-playfair)', fontSize: '1.125rem', fontWeight: 'bold' }}
+                                                        />
+                                                        {touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew && (
                                                             <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
                                                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                                 </svg>
-                                                                Bitte wähle einen Markt aus
+                                                                Bitte gib einen Produktnamen ein
                                                             </p>
                                                         )}
                                                     </div>
-                                                )}
-                                                <div>
-                                                    <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
-                                                        Produktname
-                                                        {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={editForm.product_name}
-                                                        onChange={(e) => setEditForm({ ...editForm, product_name: e.target.value })}
-                                                        onBlur={() => setTouchedFields(prev => ({ ...prev, product_name: true }))}
-                                                        className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
-                                                        style={{ borderColor: touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)', fontFamily: 'var(--font-playfair)', fontSize: '1.125rem', fontWeight: 'bold' }}
-                                                    />
-                                                    {touchedFields.product_name && !editForm.product_name.trim() && isCreatingNew && (
-                                                        <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
+                                                    {/* Description - only show for editing existing offers, not for new offers (AI generates it) */}
+                                                    {!isCreatingNew && (
+                                                        <div>
+                                                            <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--warm-gray)' }}>Beschreibung</label>
+                                                            <textarea
+                                                                value={editForm.description}
+                                                                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                                                className="w-full px-3 py-2 rounded-lg border resize-none"
+                                                                style={{ borderColor: 'var(--sand)', fontFamily: 'var(--font-outfit)', fontSize: '0.875rem' }}
+                                                                rows={3}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {isCreatingNew && (
+                                                        <div className="p-3 rounded-lg" style={{ background: 'rgba(107, 142, 122, 0.1)', border: '1px solid rgba(107, 142, 122, 0.2)' }}>
+                                                            <p className="text-xs flex items-center gap-2" style={{ color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                                </svg>
+                                                                Die Beschreibung wird automatisch per KI generiert
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div>
+                                                            <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.price && !editForm.price.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
+                                                                Preis (€)
+                                                                {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={editForm.price}
+                                                                onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                                                                onBlur={() => setTouchedFields(prev => ({ ...prev, price: true }))}
+                                                                placeholder="z.B. 2.99"
+                                                                className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.price && !editForm.price.trim() && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
+                                                                style={{ borderColor: touchedFields.price && !editForm.price.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)' }}
+                                                            />
+                                                            {touchedFields.price && !editForm.price.trim() && isCreatingNew && (
+                                                                <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
+                                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    Pflichtfeld
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.unit && !editForm.unit.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
+                                                                Einheit
+                                                                {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={editForm.unit}
+                                                                onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
+                                                                onBlur={() => setTouchedFields(prev => ({ ...prev, unit: true }))}
+                                                                placeholder="z.B. kg, Stück"
+                                                                className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.unit && !editForm.unit.trim() && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
+                                                                style={{ borderColor: touchedFields.unit && !editForm.unit.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)' }}
+                                                            />
+                                                            {touchedFields.unit && !editForm.unit.trim() && isCreatingNew && (
+                                                                <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
+                                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    Pflichtfeld
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {/* Category Dropdown */}
+                                                    <div>
+                                                        <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
+                                                            Kategorie
+                                                            {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
+                                                        </label>
+                                                        <select
+                                                            value={editForm.ai_category}
+                                                            onChange={(e) => setEditForm({ ...editForm, ai_category: e.target.value })}
+                                                            onBlur={() => setTouchedFields(prev => ({ ...prev, ai_category: true }))}
+                                                            className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
+                                                            style={{ borderColor: touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
+                                                        >
+                                                            <option value="">Bitte wählen...</option>
+                                                            <option value="Obst & Gemüse">Obst & Gemüse</option>
+                                                            <option value="Fleisch & Wurst">Fleisch & Wurst</option>
+                                                            <option value="Milchprodukte">Milchprodukte</option>
+                                                            <option value="Backwaren">Backwaren</option>
+                                                            <option value="Getränke">Getränke</option>
+                                                            <option value="Sonstiges">Sonstiges</option>
+                                                        </select>
+                                                        {touchedFields.ai_category && !editForm.ai_category && isCreatingNew && (
+                                                            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
+                                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                </svg>
+                                                                Pflichtfeld
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    {/* Expiry Date */}
+                                                    <div>
+                                                        <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: 'var(--warm-gray)' }}>
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            Gültig bis
+                                                        </label>
+                                                        <input
+                                                            type="date"
+                                                            value={editForm.expires_at}
+                                                            onChange={(e) => setEditForm({ ...editForm, expires_at: e.target.value })}
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                            className="w-full px-3 py-2 rounded-lg border transition-colors"
+                                                            style={{ borderColor: 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
+                                                        />
+                                                    </div>
+                                                    {/* Image required indicator for new offers */}
+                                                    {isCreatingNew && touchedFields.image_id && !editForm.image_id && (
+                                                        <p className="text-xs flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
                                                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                             </svg>
-                                                            Bitte gib einen Produktnamen ein
+                                                            Bitte wähle ein Bild aus
                                                         </p>
                                                     )}
                                                 </div>
-                                                {/* Description - only show for editing existing offers, not for new offers (AI generates it) */}
-                                                {!isCreatingNew && (
-                                                    <div>
-                                                        <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--warm-gray)' }}>Beschreibung</label>
-                                                        <textarea
-                                                            value={editForm.description}
-                                                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                                            className="w-full px-3 py-2 rounded-lg border resize-none"
-                                                            style={{ borderColor: 'var(--sand)', fontFamily: 'var(--font-outfit)', fontSize: '0.875rem' }}
-                                                            rows={3}
-                                                        />
-                                                    </div>
-                                                )}
-                                                {isCreatingNew && (
-                                                    <div className="p-3 rounded-lg" style={{ background: 'rgba(107, 142, 122, 0.1)', border: '1px solid rgba(107, 142, 122, 0.2)' }}>
-                                                        <p className="text-xs flex items-center gap-2" style={{ color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                            </svg>
-                                                            Die Beschreibung wird automatisch per KI generiert
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.price && !editForm.price.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
-                                                            Preis (€)
-                                                            {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={editForm.price}
-                                                            onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
-                                                            onBlur={() => setTouchedFields(prev => ({ ...prev, price: true }))}
-                                                            placeholder="z.B. 2.99"
-                                                            className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.price && !editForm.price.trim() && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
-                                                            style={{ borderColor: touchedFields.price && !editForm.price.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)' }}
-                                                        />
-                                                        {touchedFields.price && !editForm.price.trim() && isCreatingNew && (
-                                                            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
-                                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                                </svg>
-                                                                Pflichtfeld
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.unit && !editForm.unit.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
-                                                            Einheit
-                                                            {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={editForm.unit}
-                                                            onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
-                                                            onBlur={() => setTouchedFields(prev => ({ ...prev, unit: true }))}
-                                                            placeholder="z.B. kg, Stück"
-                                                            className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.unit && !editForm.unit.trim() && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
-                                                            style={{ borderColor: touchedFields.unit && !editForm.unit.trim() && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)' }}
-                                                        />
-                                                        {touchedFields.unit && !editForm.unit.trim() && isCreatingNew && (
-                                                            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
-                                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                                </svg>
-                                                                Pflichtfeld
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {/* Category Dropdown */}
-                                                <div>
-                                                    <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'var(--terracotta)' : 'var(--warm-gray)' }}>
-                                                        Kategorie
-                                                        {isCreatingNew && <span style={{ color: 'var(--terracotta)' }}>*</span>}
-                                                    </label>
-                                                    <select
-                                                        value={editForm.ai_category}
-                                                        onChange={(e) => setEditForm({ ...editForm, ai_category: e.target.value })}
-                                                        onBlur={() => setTouchedFields(prev => ({ ...prev, ai_category: true }))}
-                                                        className={`w-full px-3 py-2 rounded-lg border transition-colors ${touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'border-[var(--terracotta)] ring-1 ring-[var(--terracotta)]' : ''}`}
-                                                        style={{ borderColor: touchedFields.ai_category && !editForm.ai_category && isCreatingNew ? 'var(--terracotta)' : 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
+
+                                                {/* Edit Action Buttons */}
+                                                <div className="flex gap-2 pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
+                                                    <button
+                                                        onClick={() => handleSaveEdit(offer.id)}
+                                                        disabled={savingEdit || (isCreatingNew && !isFormValid())}
+                                                        className="flex-1 py-2 rounded-xl font-semibold transition-all hover:opacity-90 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                        style={{ background: 'var(--cardamom)', color: 'white', fontFamily: 'var(--font-outfit)' }}
                                                     >
-                                                        <option value="">Bitte wählen...</option>
-                                                        <option value="Obst & Gemüse">Obst & Gemüse</option>
-                                                        <option value="Fleisch & Wurst">Fleisch & Wurst</option>
-                                                        <option value="Milchprodukte">Milchprodukte</option>
-                                                        <option value="Backwaren">Backwaren</option>
-                                                        <option value="Getränke">Getränke</option>
-                                                        <option value="Sonstiges">Sonstiges</option>
-                                                    </select>
-                                                    {touchedFields.ai_category && !editForm.ai_category && isCreatingNew && (
-                                                        <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
-                                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                            </svg>
-                                                            Pflichtfeld
-                                                        </p>
+                                                        {savingEdit ? (
+                                                            <>
+                                                                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                                </svg>
+                                                                <span>{generatingDescription ? 'KI generiert...' : 'Wird gespeichert...'}</span>
+                                                            </>
+                                                        ) : (
+                                                            isCreatingNew ? 'Angebot erstellen' : 'Speichern'
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleCancelEdit}
+                                                        className="flex-1 py-2 rounded-xl font-semibold transition-all hover:opacity-90 cursor-pointer"
+                                                        style={{ background: 'var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}
+                                                    >
+                                                        Abbrechen
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* View Mode */}
+                                                {/* Product Name */}
+                                                <h4 className="font-bold text-lg" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                                                    {offer.product_name}
+                                                </h4>
+
+                                                {/* AI Description */}
+                                                {offer.description && (
+                                                    <p className="text-sm" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                                        {offer.description}
+                                                    </p>
+                                                )}
+
+                                                {/* Price with Unit */}
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>
+                                                        {offer.price} €
+                                                    </span>
+                                                    {offer.unit && (
+                                                        <span className="text-sm" style={{ color: 'var(--warm-gray)' }}>
+                                                            / {offer.unit}
+                                                        </span>
                                                     )}
                                                 </div>
-                                                {/* Expiry Date */}
-                                                <div>
-                                                    <label className="text-xs font-semibold mb-1 flex items-center gap-1" style={{ color: 'var(--warm-gray)' }}>
+
+                                                {/* Market Info */}
+                                                {market && (
+                                                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                        </svg>
+                                                        <span>{market.name} • {market.city}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Dates */}
+                                                <div className="text-xs space-y-1" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
+                                                    <div className="flex items-center gap-2">
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        Erstellt: {createdDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
                                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                         </svg>
-                                                        Gültig bis
-                                                    </label>
-                                                    <input
-                                                        type="date"
-                                                        value={editForm.expires_at}
-                                                        onChange={(e) => setEditForm({ ...editForm, expires_at: e.target.value })}
-                                                        min={new Date().toISOString().split('T')[0]}
-                                                        className="w-full px-3 py-2 rounded-lg border transition-colors"
-                                                        style={{ borderColor: 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
-                                                    />
+                                                        Gültig bis: {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                    </div>
                                                 </div>
-                                                {/* Image required indicator for new offers */}
-                                                {isCreatingNew && touchedFields.image_id && !editForm.image_id && (
-                                                    <p className="text-xs flex items-center gap-1" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-outfit)' }}>
-                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                        </svg>
-                                                        Bitte wähle ein Bild aus
-                                                    </p>
-                                                )}
-                                            </div>
 
-                                            {/* Edit Action Buttons */}
-                                            <div className="flex gap-2 pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
-                                                <button
-                                                    onClick={() => handleSaveEdit(offer.id)}
-                                                    disabled={savingEdit || (isCreatingNew && !isFormValid())}
-                                                    className="flex-1 py-2 rounded-xl font-semibold transition-all hover:opacity-90 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                                    style={{ background: 'var(--cardamom)', color: 'white', fontFamily: 'var(--font-outfit)' }}
-                                                >
-                                                    {savingEdit ? (
-                                                        <>
-                                                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                                            </svg>
-                                                            <span>{generatingDescription ? 'KI generiert...' : 'Wird gespeichert...'}</span>
-                                                        </>
-                                                    ) : (
-                                                        isCreatingNew ? 'Angebot erstellen' : 'Speichern'
-                                                    )}
-                                                </button>
-                                                <button
-                                                    onClick={handleCancelEdit}
-                                                    className="flex-1 py-2 rounded-xl font-semibold transition-all hover:opacity-90 cursor-pointer"
-                                                    style={{ background: 'var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}
-                                                >
-                                                    Abbrechen
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {/* View Mode */}
-                                            {/* Product Name */}
-                                            <h4 className="font-bold text-lg" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
-                                                {offer.product_name}
-                                            </h4>
-
-                                            {/* AI Description */}
-                                            {offer.description && (
-                                                <p className="text-sm" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
-                                                    {offer.description}
-                                                </p>
-                                            )}
-
-                                            {/* Price with Unit */}
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>
-                                                    {offer.price} €
-                                                </span>
-                                                {offer.unit && (
-                                                    <span className="text-sm" style={{ color: 'var(--warm-gray)' }}>
-                                                        / {offer.unit}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Market Info */}
-                                            {market && (
-                                                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                    </svg>
-                                                    <span>{market.name} • {market.city}</span>
+                                                {/* Publish Button */}
+                                                <div className="pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
+                                                    <button
+                                                        onClick={() => setPublishConfirmId(offer.id)}
+                                                        disabled={isPublishing}
+                                                        className="w-full btn-primary py-3 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+                                                        style={{ fontFamily: 'var(--font-outfit)' }}
+                                                    >
+                                                        {isPublishing ? (
+                                                            <>
+                                                                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                                </svg>
+                                                                <span>Wird veröffentlicht...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                <span>Veröffentlichen</span>
+                                                            </>
+                                                        )}
+                                                    </button>
                                                 </div>
-                                            )}
-
-                                            {/* Dates */}
-                                            <div className="text-xs space-y-1" style={{ color: 'var(--warm-gray)', fontFamily: 'var(--font-outfit)' }}>
-                                                <div className="flex items-center gap-2">
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    Erstellt: {createdDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                    Gültig bis: {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                </div>
-                                            </div>
-
-                                            {/* Publish Button */}
-                                            <div className="pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
-                                                <button
-                                                    onClick={() => setPublishConfirmId(offer.id)}
-                                                    disabled={isPublishing}
-                                                    className="w-full btn-primary py-3 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
-                                                    style={{ fontFamily: 'var(--font-outfit)' }}
-                                                >
-                                                    {isPublishing ? (
-                                                        <>
-                                                            <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                                            </svg>
-                                                            <span>Wird veröffentlicht...</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                            </svg>
-                                                            <span>Veröffentlichen</span>
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
                 </div>
             )}
 

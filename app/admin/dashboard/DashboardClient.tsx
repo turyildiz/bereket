@@ -175,8 +175,8 @@ export default function DashboardClient({
                 </div>
             </header>
 
-            {/* Tab Navigation - Only show if superadmin */}
-            {userRole === 'superadmin' && (
+            {/* Tab Navigation - Show for admin and superadmin */}
+            {(userRole === 'admin' || userRole === 'superadmin') && (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
                     <div className="flex gap-2">
                         <button onClick={() => setActiveTab('markets')} className="px-5 py-2.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-2" style={{ background: activeTab === 'markets' ? 'var(--gradient-warm)' : 'var(--glass-bg)', color: activeTab === 'markets' ? 'white' : 'var(--charcoal)', fontFamily: 'var(--font-outfit)', border: activeTab === 'markets' ? 'none' : '1px solid var(--glass-border)' }}>
@@ -197,12 +197,15 @@ export default function DashboardClient({
                             </svg>
                             Angebote Verwaltung
                         </button>
-                        <button onClick={() => setActiveTab('team')} className="px-5 py-2.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-2" style={{ background: activeTab === 'team' ? 'var(--gradient-warm)' : 'var(--glass-bg)', color: activeTab === 'team' ? 'white' : 'var(--charcoal)', fontFamily: 'var(--font-outfit)', border: activeTab === 'team' ? 'none' : '1px solid var(--glass-border)' }}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            Team Verwaltung
-                        </button>
+                        {/* Team Verwaltung - Only visible to superadmin */}
+                        {userRole === 'superadmin' && (
+                            <button onClick={() => setActiveTab('team')} className="px-5 py-2.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-2" style={{ background: activeTab === 'team' ? 'var(--gradient-warm)' : 'var(--glass-bg)', color: activeTab === 'team' ? 'white' : 'var(--charcoal)', fontFamily: 'var(--font-outfit)', border: activeTab === 'team' ? 'none' : '1px solid var(--glass-border)' }}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                Team Verwaltung
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
@@ -218,13 +221,13 @@ export default function DashboardClient({
                     />
                 )}
 
-                {/* Offer Review Tab Content - Superadmin Only */}
-                {activeTab === 'offers' && userRole === 'superadmin' && (
+                {/* Offer Review Tab Content - Admin and Superadmin */}
+                {activeTab === 'offers' && (userRole === 'admin' || userRole === 'superadmin') && (
                     <OfferReview showToast={showToast} />
                 )}
 
-                {/* Offer Management Tab Content - Superadmin Only */}
-                {activeTab === 'offer-management' && userRole === 'superadmin' && (
+                {/* Offer Management Tab Content - Admin and Superadmin */}
+                {activeTab === 'offer-management' && (userRole === 'admin' || userRole === 'superadmin') && (
                     <OfferManagement
                         initialMarkets={initialMarkets}
                         showToast={showToast}

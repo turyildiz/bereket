@@ -8,7 +8,6 @@ export interface Market {
     name: string;
     city: string;
     zip_code: string | null;
-    location: string;
     full_address: string;
     latitude: number | null;
     longitude: number | null;
