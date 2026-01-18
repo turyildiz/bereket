@@ -705,6 +705,7 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
                                                     className="w-full px-5 py-3.5 rounded-xl border bg-white/60 focus:bg-white transition-all focus:ring-4 focus:ring-[var(--saffron-glow)] outline-none appearance-none cursor-pointer"
                                                     style={{ borderColor: 'var(--sand)', fontFamily: 'var(--font-outfit)' }}
                                                 >
+                                                    <option value="">Bitte Markt auswählen</option>
                                                     {initialMarkets.map(m => (
                                                         <option key={m.id} value={m.id}>{m.name} ({m.zip_code} {m.city})</option>
                                                     ))}

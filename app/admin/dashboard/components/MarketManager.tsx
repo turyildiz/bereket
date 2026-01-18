@@ -61,6 +61,9 @@ export default function MarketManager({
     // Delete confirmation state
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+    // Activation/Deactivation confirmation state
+    const [toggleActiveConfirm, setToggleActiveConfirm] = useState<{ id: string; currentStatus: boolean } | null>(null);
+
     // Seed confirmation state
     const [showSeedConfirm, setShowSeedConfirm] = useState(false);
 
@@ -388,7 +391,16 @@ export default function MarketManager({
         setDeleteConfirm(null);
     };
 
-    const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    const handleToggleActive = (id: string, currentStatus: boolean) => {
+        // Show confirmation for both activation and deactivation
+        setToggleActiveConfirm({ id, currentStatus });
+    };
+
+    const performToggleActive = async () => {
+        if (!toggleActiveConfirm) return;
+
+        const { id, currentStatus } = toggleActiveConfirm;
+
         const { error } = await supabase
             .from('markets')
             .update({ is_active: !currentStatus })
@@ -400,6 +412,7 @@ export default function MarketManager({
             await fetchMarkets(debouncedQuery, currentPage);
             showToast(`Markt ${!currentStatus ? 'aktiviert' : 'deaktiviert'}!`, 'success');
         }
+        setToggleActiveConfirm(null);
     };
 
     const handleSeedData = async () => {
@@ -920,7 +933,7 @@ export default function MarketManager({
                                     </div>
                                     <div className="flex gap-2 pt-3 border-t relative" style={{ borderColor: 'var(--sand)' }}>
                                         {/* Active/Inactive Toggle */}
-                                        <div className="flex items-center gap-2">
+                                        <div className="relative flex items-center gap-2">
                                             <button
                                                 onClick={() => handleToggleActive(market.id, market.is_active)}
                                                 className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer"
@@ -929,6 +942,21 @@ export default function MarketManager({
                                             >
                                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${market.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
                                             </button>
+                                            {/* Activation/Deactivation Confirmation Modal */}
+                                            {toggleActiveConfirm?.id === market.id && (
+                                                <div className="absolute bottom-full left-0 mb-2 glass-card p-3 shadow-lg z-10" style={{ minWidth: '200px' }}>
+                                                    <p className="text-xs mb-2" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>
+                                                        {toggleActiveConfirm.currentStatus ? 'Markt wirklich deaktivieren?' : 'Markt wirklich aktivieren?'}
+                                                    </p>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => setToggleActiveConfirm(null)} className="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all hover:opacity-70 cursor-pointer" style={{ background: 'var(--sand)', color: 'var(--charcoal)', fontFamily: 'var(--font-outfit)' }}>Abbrechen</button>
+                                                        <button onClick={performToggleActive} className="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90 cursor-pointer" style={{ background: toggleActiveConfirm.currentStatus ? 'var(--terracotta)' : 'var(--cardamom)', color: 'white', fontFamily: 'var(--font-outfit)' }}>
+                                                            {toggleActiveConfirm.currentStatus ? 'Deaktivieren' : 'Aktivieren'}
+                                                        </button>
+                                                    </div>
+                                                    <div className="absolute -bottom-1.5 left-4 w-3 h-3 rotate-45" style={{ background: 'white' }} />
+                                                </div>
+                                            )}
                                         </div>
                                         <a href={`/shop/${market.slug}`} target="_blank" rel="noopener noreferrer" className="py-2 px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(107,142,122,0.2)]" style={{ background: 'rgba(107, 142, 122, 0.1)', color: 'var(--cardamom)', fontFamily: 'var(--font-outfit)' }}>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
