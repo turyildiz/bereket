@@ -44,7 +44,7 @@ export default async function Home() {
   return (
     <main className="min-h-screen overflow-x-hidden">
       {/* Hero Section - Stunning Customer-Focused Design */}
-      <section className="relative min-h-[90vh] flex items-center overflow-x-clip">
+      <section className="relative min-h-[75vh] md:min-h-[90vh] flex items-center overflow-x-clip">
         {/* Full-Screen Background Image */}
         <div className="absolute inset-0">
           <img
@@ -62,29 +62,42 @@ export default async function Home() {
         <div className="absolute bottom-40 left-10 w-72 h-72 rounded-full opacity-15 blur-3xl animate-float" style={{ background: 'var(--terracotta)', animationDelay: '2s' }}></div>
 
         {/* Content Container - Grid Layout to keep cards within bounds */}
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-8 w-full">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 sm:py-16 md:py-20 sm:px-10 lg:px-8 w-full">
           <div className="grid lg:grid-cols-5 gap-8 items-center">
             {/* Left Content - Takes 3 columns */}
             <div className="lg:col-span-3">
+              {/* Two Column Layout: Logo + Headline */}
+              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[240px_1fr] gap-6 md:gap-8 items-center mb-6 md:mb-8">
+                {/* Logo Column - Larger on mobile as requested */}
+                <div className="relative w-40 sm:w-48 md:w-full md:max-w-[200px] lg:max-w-[240px] mx-auto md:mx-0 animate-fade-in-up">
+                  {/* Glow effect - only visible on desktop */}
+                  <div className="hidden md:block absolute inset-0 rounded-3xl blur-2xl opacity-40 animate-pulse" style={{ background: 'var(--gradient-warm)' }}></div>
+                  {/* Logo */}
+                  <div className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-lg md:shadow-2xl hover:scale-105 transition-transform duration-500">
+                    <img
+                      src="/bereket-logo.png"
+                      alt="Bereket Market"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                </div>
 
-
-              {/* Main Headline */}
-              <h1
-                className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6 animate-fade-in-up text-white"
-                style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
-              >
-                Entdecke die
-                <br />
-                <span className="relative inline-block">
-                  <span className="text-gradient-warm">besten Deals</span>
-                </span>
-                <br />
-                deiner Stadt
-              </h1>
-
-              {/* Subheadline */}
-
-
+                {/* Headline Column */}
+                <div>
+                  <h1
+                    className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] animate-fade-in-up text-white text-center md:text-left"
+                    style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
+                  >
+                    Entdecke die
+                    <br />
+                    <span className="relative inline-block">
+                      <span className="text-gradient-warm">besten Deals</span>
+                    </span>
+                    <br />
+                    deiner Stadt
+                  </h1>
+                </div>
+              </div>
 
               {/* Search Bar with Tabs */}
               <HeroSearchBar />
@@ -224,7 +237,11 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Mobile: Horizontal Scroll */}
+          <MobileMarketScroll markets={premiumMarkets} />
+
+          {/* Desktop: Standard Grid */}
+          <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-8">
             <MarketGridClient markets={premiumMarkets} variant="premium" />
           </div>
         </section>

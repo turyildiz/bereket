@@ -68,17 +68,8 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                 <nav className="sticky top-0 z-50 overflow-x-hidden backdrop-blur-xl border-b transition-all" style={{ background: 'rgba(250, 247, 242, 0.85)', borderColor: 'var(--sand)' }}>
                     <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
-                        {/* Logo */}
-                        <Link href="/" className="flex items-center gap-3 cursor-pointer shrink-0 hover:opacity-90 transition-opacity group">
-                            <div className="relative">
-                                <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform">
-                                    <img
-                                        src="/bereket-logo.png"
-                                        alt="Bereket Market Logo"
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                            </div>
+                        {/* Logo - Text Only */}
+                        <Link href="/" className="flex items-center gap-3 cursor-pointer shrink-0 hover:opacity-90 transition-opacity">
                             <div className="flex flex-col">
                                 <span className="text-xl sm:text-2xl font-bold leading-tight" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
                                     Bereket Market
@@ -224,21 +215,16 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
                             {/* Brand Column */}
                             <div className="lg:col-span-1">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg">
+                                {/* Logo Only - Width matches social icons below (3×w-10 + 2×gap-3 = 144px) */}
+                                <div className="mb-6 w-36 mx-auto lg:mx-0">
+                                    <div className="rounded-2xl overflow-hidden shadow-xl hover:scale-105 transition-transform duration-300">
                                         <img
                                             src="/bereket-logo.png"
                                             alt="Bereket Market Logo"
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-auto"
                                         />
                                     </div>
-                                    <span className="text-xl font-bold text-white" style={{ fontFamily: 'var(--font-playfair)' }}>
-                                        Bereket Market
-                                    </span>
                                 </div>
-                                <p className="leading-relaxed text-white/70 mb-6">
-                                    Dein lokaler Marktplatz für orientalische Spezialitäten.
-                                </p>
 
                                 {/* Social Icons */}
                                 <div className="flex gap-3">
