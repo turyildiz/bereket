@@ -4,6 +4,7 @@ import SearchMarketCard from './SearchMarketCard';
 
 interface MarketType {
     id: string;
+    slug: string;
     name: string;
     city: string;
     zip_code: string | null;

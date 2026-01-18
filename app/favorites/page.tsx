@@ -8,6 +8,7 @@ import MarketCardWithFavorite from '@/app/components/MarketCardWithFavorite';
 
 interface Market {
     id: string;
+    slug: string;
     name: string;
     city: string;
     header_url: string | null;
@@ -38,7 +39,7 @@ export default function FavoritesPage() {
 
             const { data, error } = await supabase
                 .from('markets')
-                .select('id, name, city, header_url, logo_url, about_text, is_premium, zip_code')
+                .select('id, slug, name, city, header_url, logo_url, about_text, is_premium, zip_code')
                 .in('id', favorites);
 
             if (error) {

@@ -284,6 +284,16 @@ body {
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
 }
 
+/* ===== SCROLLBAR UTILITIES ===== */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* ===== TEXT UTILITIES ===== */
 .text-gradient-warm {
   background: var(--gradient-warm);

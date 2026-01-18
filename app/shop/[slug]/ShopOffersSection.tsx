@@ -9,12 +9,23 @@ interface Offer {
     price: string | number;
     unit?: string | null;
     description?: string | null;
+    ai_category?: string | null;
     image_library: {
         url: string;
     } | null;
     expires_at: string;
     created_at: string;
 }
+
+const CATEGORIES = [
+    { id: 'all', label: 'Alle', icon: '🛒' },
+    { id: 'Obst & Gemüse', label: 'Obst & Gemüse', icon: '🥬' },
+    { id: 'Fleisch & Wurst', label: 'Fleisch & Wurst', icon: '🥩' },
+    { id: 'Milchprodukte', label: 'Milchprodukte', icon: '🧀' },
+    { id: 'Backwaren', label: 'Backwaren', icon: '🥖' },
+    { id: 'Getränke', label: 'Getränke', icon: '🥤' },
+    { id: 'Sonstiges', label: 'Sonstiges', icon: '📦' },
+];
 
 interface ShopOffersSectionProps {
     marketId: string;
@@ -38,6 +49,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [totalCount, setTotalCount] = useState<number | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +72,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
             // Fetch initial batch
             const { data, error } = await supabase
                 .from('offers')
-                .select('id, product_name, price, unit, description, expires_at, created_at, image_library(url)')
+                .select('id, product_name, price, unit, description, ai_category, expires_at, created_at, image_library(url)')
                 .eq('market_id', marketId)
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
@@ -92,7 +104,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
 
         const { data, error } = await supabase
             .from('offers')
-            .select('id, product_name, price, unit, description, expires_at, created_at, image_library(url)')
+            .select('id, product_name, price, unit, description, ai_category, expires_at, created_at, image_library(url)')
             .eq('market_id', marketId)
             .eq('status', 'live')
             .gt('expires_at', new Date().toISOString())
@@ -125,6 +137,17 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
 
         return () => observer.disconnect();
     }, [loadMore, hasMore, isLoadingMore, isLoading]);
+
+    // Filter offers by selected category
+    const filteredOffers = selectedCategory === 'all'
+        ? offers
+        : offers.filter(offer => offer.ai_category === selectedCategory);
+
+    // Count offers per category for badge display
+    const getCategoryCount = (categoryId: string) => {
+        if (categoryId === 'all') return offers.length;
+        return offers.filter(offer => offer.ai_category === categoryId).length;
+    };
 
     return (
         <div className="min-w-0">
@@ -164,6 +187,69 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                 </div>
             </div>
 
+            {/* Category Filter Navigation */}
+            {!isLoading && offers.length > 0 && (
+                <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+                    <div
+                        className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
+                        style={{
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none'
+                        }}
+                    >
+                        {CATEGORIES.map((category) => {
+                            const count = getCategoryCount(category.id);
+                            const isActive = selectedCategory === category.id;
+                            const hasOffers = count > 0;
+
+                            return (
+                                <button
+                                    key={category.id}
+                                    onClick={() => setSelectedCategory(category.id)}
+                                    disabled={!hasOffers && category.id !== 'all'}
+                                    className={`
+                                        flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm
+                                        whitespace-nowrap transition-all duration-200 cursor-pointer
+                                        ${isActive
+                                            ? 'shadow-lg scale-[1.02]'
+                                            : hasOffers
+                                                ? 'hover:scale-[1.02] hover:shadow-md'
+                                                : 'opacity-50 cursor-not-allowed'
+                                        }
+                                    `}
+                                    style={{
+                                        background: isActive
+                                            ? 'var(--gradient-warm)'
+                                            : 'rgba(255, 255, 255, 0.8)',
+                                        color: isActive ? 'white' : 'var(--charcoal)',
+                                        border: isActive
+                                            ? 'none'
+                                            : '1px solid rgba(255, 255, 255, 0.5)',
+                                        backdropFilter: 'blur(10px)',
+                                    }}
+                                >
+                                    <span className="text-base">{category.icon}</span>
+                                    <span>{category.label}</span>
+                                    {hasOffers && (
+                                        <span
+                                            className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold"
+                                            style={{
+                                                background: isActive
+                                                    ? 'rgba(255, 255, 255, 0.25)'
+                                                    : 'var(--sand)',
+                                                color: isActive ? 'white' : 'var(--warm-gray)'
+                                            }}
+                                        >
+                                            {count}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Loading State */}
             {isLoading ? (
                 <div className="flex items-center justify-center py-16">
@@ -171,9 +257,10 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                 </div>
             ) : offers.length > 0 ? (
                 <>
-                    {/* Offers Grid */}
+                    {/* Offers Grid or Category Empty State */}
+                    {filteredOffers.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {offers.map((offer, idx) => (
+                        {filteredOffers.map((offer, idx) => (
                             <div
                                 key={offer.id}
                                 className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in"
@@ -239,6 +326,45 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                             </div>
                         ))}
                     </div>
+                    ) : (
+                        /* Category Empty State */
+                        <div
+                            className="text-center py-12 px-8 rounded-3xl animate-fade-in-up"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.7)',
+                                backdropFilter: 'blur(10px)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255, 255, 255, 0.5)',
+                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
+                            }}
+                        >
+                            <div
+                                className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl shadow-md"
+                                style={{ background: 'var(--sand)' }}
+                            >
+                                {CATEGORIES.find(c => c.id === selectedCategory)?.icon || '📦'}
+                            </div>
+                            <h3
+                                className="text-xl font-bold mb-2"
+                                style={{
+                                    fontFamily: 'var(--font-playfair)',
+                                    color: 'var(--charcoal)'
+                                }}
+                            >
+                                Momentan keine Angebote in dieser Kategorie.
+                            </h3>
+                            <p className="text-sm mb-4" style={{ color: 'var(--warm-gray)' }}>
+                                Schauen Sie in anderen Kategorien oder bald wieder vorbei!
+                            </p>
+                            <button
+                                onClick={() => setSelectedCategory('all')}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all hover:scale-105 cursor-pointer"
+                                style={{ background: 'var(--gradient-warm)', color: 'white' }}
+                            >
+                                Alle Angebote anzeigen
+                            </button>
+                        </div>
+                    )}
 
                     {/* Load More Trigger */}
                     <div ref={loadMoreRef} className="py-6">
@@ -247,7 +373,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                                 <div className="animate-spin rounded-full h-8 w-8 border-4 border-[var(--saffron)] border-t-transparent"></div>
                             </div>
                         )}
-                        {!hasMore && offers.length > 0 && totalCount !== null && totalCount > INITIAL_LOAD && (
+                        {!hasMore && offers.length > 0 && totalCount !== null && totalCount > INITIAL_LOAD && selectedCategory === 'all' && (
                             <p className="text-center text-sm" style={{ color: 'var(--warm-gray)' }}>
                                 Alle {totalCount} Angebote geladen
                             </p>

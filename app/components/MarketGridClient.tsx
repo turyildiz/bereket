@@ -4,6 +4,7 @@ import MarketCardWithFavorite from './MarketCardWithFavorite';
 
 interface Market {
     id: string;
+    slug: string;
     name: string;
     city: string;
     header_url: string | null;
