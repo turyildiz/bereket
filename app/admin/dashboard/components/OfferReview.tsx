@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { publishOffer, createOffer, updateOffer, deleteOffer } from '@/app/actions/offers';
+import { getSignedUploadUrl } from '@/app/actions/storage';
+import { addToImageLibrary } from '@/app/actions/library';
 
 interface DraftOffer {
     id: string;
@@ -117,13 +120,11 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         setPublishConfirmId(null);
 
         try {
-            const { error } = await supabase
-                .from('offers')
-                .update({ status: 'live' })
-                .eq('id', offerId);
+            // Use secure server action instead of direct Supabase update
+            const result = await publishOffer(offerId);
 
-            if (error) {
-                showToast('Fehler beim Veröffentlichen: ' + error.message, 'error');
+            if (!result.success) {
+                showToast(result.error || 'Fehler beim Veröffentlichen', 'error');
             } else {
                 showToast('Angebot ist jetzt live!', 'success');
                 setDraftOffers(prev => prev.filter(offer => offer.id !== offerId));
@@ -245,50 +246,43 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
                 }
                 setGeneratingDescription(false);
 
-                // Create new offer
-                const { data: newOfferData, error } = await supabase
-                    .from('offers')
-                    .insert({
-                        product_name: editForm.product_name,
-                        description: generatedDescription,
-                        price: parseFloat(editForm.price),
-                        unit: editForm.unit,
-                        image_id: editForm.image_id,
-                        market_id: editForm.market_id,
-                        ai_category: editForm.ai_category,
-                        status: 'draft',
-                        expires_at: new Date(editForm.expires_at).toISOString()
-                    })
-                    .select('id, product_name, description, price, unit, image_id, expires_at, created_at, market_id, markets(id, name, city), image_library(url)')
-                    .single();
+                // Create new offer using secure server action
+                const result = await createOffer({
+                    product_name: editForm.product_name,
+                    description: generatedDescription || null,
+                    price: editForm.price, // Server action accepts string
+                    unit: editForm.unit,
+                    image_id: editForm.image_id,
+                    market_id: editForm.market_id,
+                    ai_category: editForm.ai_category,
+                    status: 'draft',
+                    expires_at: editForm.expires_at
+                });
 
-                if (error) {
-                    showToast('Fehler beim Erstellen: ' + error.message, 'error');
+                if (!result.success) {
+                    showToast(result.error || 'Fehler beim Erstellen', 'error');
                 } else {
                     showToast('Angebot erfolgreich erstellt!', 'success');
-                    // Replace placeholder with real data
-                    setDraftOffers(prev => [newOfferData as unknown as DraftOffer, ...prev.filter(o => o.id !== 'new-offer')]);
+                    // Refresh the list to get the newly created offer with all relations
+                    await fetchDraftOffers();
                     setEditingId(null);
                     setIsCreatingNew(false);
                 }
             } else {
-                // Update existing offer
-                const { error } = await supabase
-                    .from('offers')
-                    .update({
-                        product_name: editForm.product_name,
-                        description: editForm.description,
-                        price: editForm.price,
-                        unit: editForm.unit,
-                        image_id: editForm.image_id,
-                        market_id: editForm.market_id,
-                        ai_category: editForm.ai_category,
-                        expires_at: editForm.expires_at ? new Date(editForm.expires_at).toISOString() : undefined
-                    })
-                    .eq('id', offerId);
+                // Update existing offer using secure server action
+                const result = await updateOffer(offerId, {
+                    product_name: editForm.product_name,
+                    description: editForm.description || null,
+                    price: editForm.price, // Server action accepts string
+                    unit: editForm.unit,
+                    image_id: editForm.image_id,
+                    market_id: editForm.market_id,
+                    ai_category: editForm.ai_category,
+                    expires_at: editForm.expires_at
+                });
 
-                if (error) {
-                    showToast('Fehler beim Speichern: ' + error.message, 'error');
+                if (!result.success) {
+                    showToast(result.error || 'Fehler beim Speichern', 'error');
                 } else {
                     showToast('Angebot erfolgreich aktualisiert!', 'success');
                     // Fetch updated offer with image_library data
@@ -355,51 +349,51 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
 
         setUploadingImage(true);
         try {
-            // Upload to Supabase storage
-            const filename = `upload-${Date.now()}-${file.name}`;
-            const { error: uploadError } = await supabase
-                .storage
-                .from('offer-images')
-                .upload(filename, file, {
-                    contentType: file.type,
-                    upsert: false
-                });
+            // 1. Get signed upload URL from server action
+            const uploadResult = await getSignedUploadUrl(file.name, file.type, 'offer-images');
 
-            if (uploadError) {
-                showToast('Fehler beim Hochladen: ' + uploadError.message, 'error');
+            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.publicUrl) {
+                showToast('Fehler beim Initialisieren des Uploads: ' + (uploadResult.error || 'Keine URL erhalten'), 'error');
+                setUploadingImage(false);
                 return;
             }
 
-            // Get public URL
-            const { data: urlData } = supabase
-                .storage
-                .from('offer-images')
-                .getPublicUrl(filename);
+            // 2. Upload file directly to signed URL
+            const uploadResponse = await fetch(uploadResult.signedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type,
+                },
+            });
 
-            // Insert into image_library
+            if (!uploadResponse.ok) {
+                console.error('Upload response status:', uploadResponse.status);
+                showToast('Fehler beim Hochladen der Datei.', 'error');
+                setUploadingImage(false);
+                return;
+            }
+
+            // 3. Register in Image Library using secure server action
             const productNameForImage = editForm.product_name || 'Uploaded';
-            const { data: newLibraryEntry, error: libraryError } = await supabase
-                .from('image_library')
-                .insert({
-                    url: urlData.publicUrl,
-                    product_name: productNameForImage
-                })
-                .select('id, url, product_name')
-                .single();
+            const result = await addToImageLibrary(
+                uploadResult.publicUrl,
+                productNameForImage
+            );
 
-            if (libraryError) {
-                showToast('Fehler beim Speichern in Bibliothek: ' + libraryError.message, 'error');
+            if (!result.success) {
+                showToast(result.error || 'Fehler beim Speichern in Bibliothek', 'error');
                 return;
             }
 
-            if (newLibraryEntry) {
+            if (result.imageData) {
                 // Add the new image to libraryImages so the preview can find it
-                setLibraryImages(prev => [newLibraryEntry, ...prev]);
-                setEditForm({ ...editForm, image_id: newLibraryEntry.id });
+                setLibraryImages(prev => [result.imageData!, ...prev]);
+                setEditForm({ ...editForm, image_id: result.imageData!.id });
                 showToast('Bild erfolgreich hochgeladen!', 'success');
                 setShowImageGallery(false);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Unexpected error:', err);
             showToast('Ein unerwarteter Fehler ist aufgetreten.', 'error');
         } finally {
@@ -415,13 +409,11 @@ export default function OfferReview({ showToast }: OfferReviewProps) {
         if (!deleteConfirmId) return;
 
         try {
-            const { error } = await supabase
-                .from('offers')
-                .delete()
-                .eq('id', deleteConfirmId);
+            // Use secure server action instead of direct Supabase delete
+            const result = await deleteOffer(deleteConfirmId);
 
-            if (error) {
-                showToast('Fehler beim Löschen: ' + error.message, 'error');
+            if (!result.success) {
+                showToast(result.error || 'Fehler beim Löschen', 'error');
             } else {
                 showToast('Angebot erfolgreich gelöscht!', 'success');
                 // Optimistic update

@@ -10,6 +10,7 @@ interface Offer {
     id: string;
     product_name: string;
     price: string;
+    unit: string | null;
     image_library: {
         url: string;
     } | null;
@@ -53,34 +54,7 @@ function OffersPageContent() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [selectedCity, setSelectedCity] = useState<string>('Alle Städte');
 
-    // Category scroll refs
-    const categoryScrollRef = useRef<HTMLDivElement>(null);
-    const [showScrollButtons, setShowScrollButtons] = useState(false);
-
-    // Check if scroll buttons are needed
-    useEffect(() => {
-        const checkScrollNeeded = () => {
-            if (categoryScrollRef.current) {
-                const { scrollWidth, clientWidth } = categoryScrollRef.current;
-                setShowScrollButtons(scrollWidth > clientWidth);
-            }
-        };
-
-        checkScrollNeeded();
-        window.addEventListener('resize', checkScrollNeeded);
-        return () => window.removeEventListener('resize', checkScrollNeeded);
-    }, [allOffers]);
-
-    // Scroll category bar left/right
-    const scrollCategories = (direction: 'left' | 'right') => {
-        if (categoryScrollRef.current) {
-            const scrollAmount = 200;
-            categoryScrollRef.current.scrollBy({
-                left: direction === 'left' ? -scrollAmount : scrollAmount,
-                behavior: 'smooth'
-            });
-        }
-    };
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
     // Initial load - fetch all offers once for client-side filtering
     useEffect(() => {
@@ -92,7 +66,7 @@ function OffersPageContent() {
 
             let query = supabase
                 .from('offers')
-                .select('id, product_name, price, expires_at, market_id, created_at, ai_category, image_library(url), markets!inner(id, slug, name, city, zip_code, logo_url)')
+                .select('id, product_name, price, unit, expires_at, market_id, created_at, ai_category, image_library(url), markets!inner(id, slug, name, city, zip_code, logo_url)')
                 .eq('markets.is_active', true)
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
@@ -301,9 +275,9 @@ function OffersPageContent() {
             </section>
 
             {/* Filter Bar - Premium Design */}
-            <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <section className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 z-30">
                 <div
-                    className="relative rounded-3xl shadow-2xl animate-fade-in-up overflow-hidden"
+                    className="rounded-3xl shadow-2xl animate-fade-in-up"
                     style={{
                         background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.98) 100%)',
                         backdropFilter: 'blur(20px)',
@@ -398,8 +372,8 @@ function OffersPageContent() {
                                 )}
                             </div>
 
-                            {/* Category Bar - Right Column */}
-                            <div className="relative">
+                            {/* Category Bar - Right Column (Dropdown Version) */}
+                            <div className="relative z-20">
                                 <label
                                     className="flex items-center gap-2 text-sm font-bold mb-3"
                                     style={{ color: 'var(--charcoal)' }}
@@ -410,108 +384,85 @@ function OffersPageContent() {
                                     <span>Kategorie auswählen</span>
                                 </label>
 
-                                {/* Left scroll button */}
-                                {showScrollButtons && (
+                                <div className="relative">
+                                    {/* Trigger Button */}
                                     <button
-                                        onClick={() => scrollCategories('left')}
-                                        className="hidden lg:flex absolute left-0 top-[calc(50%+6px)] -translate-y-1/2 z-10 w-10 h-10 items-center justify-center rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-110 cursor-pointer"
+                                        onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                                        className="w-full px-5 py-4 rounded-2xl border-2 font-semibold text-base transition-all duration-300 flex items-center justify-between shadow-md hover:shadow-xl group"
                                         style={{
-                                            marginLeft: '-12px',
-                                            background: 'white',
-                                            border: '2px solid var(--sand)'
+                                            borderColor: selectedCategory === 'all' ? 'var(--sand)' : 'var(--terracotta)',
+                                            background: selectedCategory === 'all' ? 'white' : 'linear-gradient(135deg, #fff 0%, #FFF8F0 100%)',
+                                            color: 'var(--charcoal)'
                                         }}
-                                        aria-label="Scroll left"
                                     >
-                                        <svg className="w-5 h-5" style={{ color: 'var(--charcoal)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl">
+                                                {CATEGORIES.find(c => c.id === selectedCategory)?.icon}
+                                            </span>
+                                            <span>
+                                                {CATEGORIES.find(c => c.id === selectedCategory)?.label}
+                                            </span>
+                                            {selectedCategory !== 'all' && getCategoryCount(selectedCategory) > 0 && (
+                                                <span className="bg-[var(--saffron)] text-white text-xs font-bold px-2 py-1 rounded-md ml-2">
+                                                    {getCategoryCount(selectedCategory)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <svg
+                                            className={`w-5 h-5 transition-transform duration-300 ${isCategoryOpen ? 'rotate-180' : ''}`}
+                                            style={{ color: selectedCategory === 'all' ? 'var(--warm-gray)' : 'var(--terracotta)' }}
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </button>
-                                )}
 
-                                <div
-                                    ref={categoryScrollRef}
-                                    className={`flex gap-3 pb-2 overflow-x-auto ${showScrollButtons ? 'lg:mx-6' : ''}`}
-                                    style={{
-                                        scrollbarWidth: 'none',
-                                        msOverflowStyle: 'none',
-                                        WebkitOverflowScrolling: 'touch'
-                                    }}
-                                >
-                                    {CATEGORIES.filter((category) => {
-                                        if (category.id === 'all') return true;
-                                        return getCategoryCount(category.id) > 0;
-                                    }).map((category) => {
-                                        const count = getCategoryCount(category.id);
-                                        const isActive = selectedCategory === category.id;
-
-                                        return (
-                                            <button
-                                                key={category.id}
-                                                onClick={() => setSelectedCategory(category.id)}
-                                                className={`
-                                                    group relative flex items-center gap-2.5 px-5 py-3.5 rounded-2xl font-bold text-sm
-                                                    whitespace-nowrap transition-all duration-300 flex-shrink-0 cursor-pointer
-                                                    ${isActive
-                                                        ? 'shadow-xl scale-105'
-                                                        : 'hover:scale-105 hover:shadow-lg'
-                                                    }
-                                                `}
-                                                style={{
-                                                    background: isActive
-                                                        ? 'var(--gradient-warm)'
-                                                        : 'white',
-                                                    color: isActive ? 'white' : 'var(--charcoal)',
-                                                    border: isActive
-                                                        ? 'none'
-                                                        : '2px solid var(--sand)',
-                                                    boxShadow: isActive
-                                                        ? '0 8px 25px rgba(225, 139, 85, 0.25)'
-                                                        : '0 4px 15px rgba(0,0,0,0.05)'
-                                                }}
+                                    {/* Dropdown Menu */}
+                                    {isCategoryOpen && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-10"
+                                                onClick={() => setIsCategoryOpen(false)}
+                                            />
+                                            <div
+                                                className="absolute top-full left-0 right-0 mt-2 rounded-2xl bg-white border-2 shadow-2xl z-20 overflow-hidden max-h-[300px] overflow-y-auto animate-fade-in-up"
+                                                style={{ borderColor: 'var(--sand)' }}
                                             >
-                                                <span className={`text-xl transition-transform ${isActive ? '' : 'group-hover:scale-110'}`}>
-                                                    {category.icon}
-                                                </span>
-                                                <span>{category.label}</span>
-                                                <span
-                                                    className="ml-1 min-w-[24px] h-6 px-2 flex items-center justify-center rounded-lg text-xs font-black"
-                                                    style={{
-                                                        background: isActive
-                                                            ? 'rgba(255, 255, 255, 0.3)'
-                                                            : 'var(--saffron-light)',
-                                                        color: isActive ? 'white' : 'var(--charcoal)'
-                                                    }}
-                                                >
-                                                    {count}
-                                                </span>
-                                                {isActive && (
-                                                    <div
-                                                        className="absolute inset-0 rounded-2xl opacity-50 blur-xl"
-                                                        style={{ background: 'var(--gradient-warm)' }}
-                                                    />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                {CATEGORIES.filter(cat => cat.id === 'all' || getCategoryCount(cat.id) > 0).map((category) => {
+                                                    const count = getCategoryCount(category.id);
+                                                    const isActive = selectedCategory === category.id;
 
-                                {/* Right scroll button */}
-                                {showScrollButtons && (
-                                    <button
-                                        onClick={() => scrollCategories('right')}
-                                        className="hidden lg:flex absolute right-0 top-[calc(50%+6px)] -translate-y-1/2 z-10 w-10 h-10 items-center justify-center rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-110 cursor-pointer"
-                                        style={{
-                                            marginRight: '-12px',
-                                            background: 'white',
-                                            border: '2px solid var(--sand)'
-                                        }}
-                                        aria-label="Scroll right"
-                                    >
-                                        <svg className="w-5 h-5" style={{ color: 'var(--charcoal)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                )}
+                                                    return (
+                                                        <button
+                                                            key={category.id}
+                                                            onClick={() => {
+                                                                setSelectedCategory(category.id);
+                                                                setIsCategoryOpen(false);
+                                                            }}
+                                                            className={`w-full px-5 py-3.5 flex items-center justify-between hover:bg-[var(--sand)]/20 transition-colors ${isActive ? 'bg-[var(--sand)]/30' : ''}`}
+                                                        >
+                                                            <div className="flex items-center gap-3 font-medium">
+                                                                <span className="text-xl">{category.icon}</span>
+                                                                <span style={{ color: isActive ? 'var(--terracotta)' : 'var(--charcoal)' }}>
+                                                                    {category.label}
+                                                                </span>
+                                                            </div>
+                                                            <span
+                                                                className="text-xs font-bold px-2 py-1 rounded-md"
+                                                                style={{
+                                                                    background: isActive ? 'var(--terracotta)' : 'var(--sand)',
+                                                                    color: isActive ? 'white' : 'var(--warm-gray)'
+                                                                }}
+                                                            >
+                                                                {count}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -658,7 +609,8 @@ function OffersPageContent() {
                                                 className="text-2xl font-black"
                                                 style={{ color: 'var(--terracotta)' }}
                                             >
-                                                {offer.price}
+                                                {offer.price} €
+                                                {offer.unit && <span className="text-sm font-medium ml-1" style={{ color: 'var(--warm-gray)' }}>/ {offer.unit}</span>}
                                             </span>
 
                                             {/* Market Location */}

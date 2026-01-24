@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { createMarket, updateMarket, updateMarketStatus, deleteMarket, seedSampleMarkets } from '@/app/actions/markets';
-import { getUploadUrl } from '@/app/actions/storage';
+import { getSignedUploadUrl } from '@/app/actions/storage';
 import { Market, MarketFormData } from './types';
 
 interface MarketManagerProps {
@@ -238,9 +238,9 @@ export default function MarketManager({
             setUploadingLogo(true);
 
             // Get signed upload URL from server action
-            const uploadResult = await getUploadUrl(logoFile.name, 'market-assets');
+            const uploadResult = await getSignedUploadUrl(logoFile.name, logoFile.type, 'market-assets');
 
-            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.path) {
+            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.publicUrl) {
                 showToast('Fehler beim Logo-Upload: ' + (uploadResult.error || 'Keine Upload-URL erhalten'), 'error');
                 setLoading(false);
                 setUploadingLogo(false);
@@ -263,11 +263,7 @@ export default function MarketManager({
                 return;
             }
 
-            // Get public URL for the uploaded file
-            const { data: publicUrlData } = supabase.storage
-                .from('market-assets')
-                .getPublicUrl(uploadResult.path);
-            finalLogoUrl = publicUrlData.publicUrl;
+            finalLogoUrl = uploadResult.publicUrl;
             setUploadingLogo(false);
         }
 
@@ -275,9 +271,9 @@ export default function MarketManager({
             setUploadingHeader(true);
 
             // Get signed upload URL from server action
-            const uploadResult = await getUploadUrl(headerFile.name, 'market-assets');
+            const uploadResult = await getSignedUploadUrl(headerFile.name, headerFile.type, 'market-assets');
 
-            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.path) {
+            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.publicUrl) {
                 showToast('Fehler beim Header-Upload: ' + (uploadResult.error || 'Keine Upload-URL erhalten'), 'error');
                 setLoading(false);
                 setUploadingHeader(false);
@@ -300,11 +296,7 @@ export default function MarketManager({
                 return;
             }
 
-            // Get public URL for the uploaded file
-            const { data: publicUrlData } = supabase.storage
-                .from('market-assets')
-                .getPublicUrl(uploadResult.path);
-            finalHeaderUrl = publicUrlData.publicUrl;
+            finalHeaderUrl = uploadResult.publicUrl;
             setUploadingHeader(false);
         }
 

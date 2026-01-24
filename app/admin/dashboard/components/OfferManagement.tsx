@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { createOffer, updateOffer, deleteOffer } from '@/app/actions/offers';
+import { getSignedUploadUrl } from '@/app/actions/storage';
+import { addToImageLibrary } from '@/app/actions/library';
 import { Market } from './types';
 
 interface FullOffer {
@@ -247,47 +250,42 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
         setSavingEdit(true);
         try {
             if (isCreatingNew) {
-                // Create new offer
-                const { error } = await supabase
-                    .from('offers')
-                    .insert({
-                        product_name: editForm.product_name,
-                        description: editForm.description,
-                        price: parseFloat(editForm.price),
-                        unit: editForm.unit,
-                        image_id: editForm.image_id,
-                        market_id: editForm.market_id,
-                        ai_category: editForm.ai_category,
-                        status: editForm.status,
-                        expires_at: editForm.expires_at ? new Date(editForm.expires_at).toISOString() : undefined
-                    });
+                // Create new offer using secure server action
+                const result = await createOffer({
+                    product_name: editForm.product_name,
+                    description: editForm.description || null,
+                    price: editForm.price, // Server action accepts string
+                    unit: editForm.unit,
+                    image_id: editForm.image_id,
+                    market_id: editForm.market_id,
+                    ai_category: editForm.ai_category,
+                    status: editForm.status as 'draft' | 'live' | 'expired',
+                    expires_at: editForm.expires_at
+                });
 
-                if (error) {
-                    showToast('Fehler beim Erstellen: ' + error.message, 'error');
+                if (!result.success) {
+                    showToast(result.error || 'Fehler beim Erstellen', 'error');
                 } else {
                     showToast('Angebot erfolgreich erstellt!', 'success');
                     fetchOffers();
                     handleCancelEdit();
                 }
             } else {
-                // Update existing offer
-                const { error } = await supabase
-                    .from('offers')
-                    .update({
-                        product_name: editForm.product_name,
-                        description: editForm.description,
-                        price: parseFloat(editForm.price),
-                        unit: editForm.unit,
-                        image_id: editForm.image_id,
-                        market_id: editForm.market_id,
-                        ai_category: editForm.ai_category,
-                        status: editForm.status,
-                        expires_at: editForm.expires_at ? new Date(editForm.expires_at).toISOString() : undefined
-                    })
-                    .eq('id', editingId);
+                // Update existing offer using secure server action
+                const result = await updateOffer(editingId!, {
+                    product_name: editForm.product_name,
+                    description: editForm.description || null,
+                    price: editForm.price, // Server action accepts string
+                    unit: editForm.unit,
+                    image_id: editForm.image_id,
+                    market_id: editForm.market_id,
+                    ai_category: editForm.ai_category,
+                    status: editForm.status as 'draft' | 'live' | 'expired',
+                    expires_at: editForm.expires_at
+                });
 
-                if (error) {
-                    showToast('Fehler beim Speichern: ' + error.message, 'error');
+                if (!result.success) {
+                    showToast(result.error || 'Fehler beim Speichern', 'error');
                 } else {
                     showToast('Angebot erfolgreich aktualisiert!', 'success');
                     fetchOffers(); // Refresh list
@@ -312,9 +310,11 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
     const handleConfirmDelete = async () => {
         if (!deleteConfirmId) return;
         try {
-            const { error } = await supabase.from('offers').delete().eq('id', deleteConfirmId);
-            if (error) {
-                showToast('Fehler beim Löschen: ' + error.message, 'error');
+            // Use secure server action instead of direct Supabase delete
+            const result = await deleteOffer(deleteConfirmId);
+
+            if (!result.success) {
+                showToast(result.error || 'Fehler beim Löschen', 'error');
             } else {
                 showToast('Angebot erfolgreich gelöscht!', 'success');
                 setOffers(prev => prev.filter(o => o.id !== deleteConfirmId));
@@ -322,9 +322,13 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
             }
         } catch (err) {
             console.error(err);
+            showToast('Ein unerwarteter Fehler ist aufgetreten.', 'error');
         }
     };
 
+    // -------------------------------------------------------------------------
+    // IMAGE UPLOAD LOGIC
+    // -------------------------------------------------------------------------
     // -------------------------------------------------------------------------
     // IMAGE UPLOAD LOGIC
     // -------------------------------------------------------------------------
@@ -334,32 +338,49 @@ export default function OfferManagement({ initialMarkets, showToast }: OfferMana
 
         setUploadingImage(true);
         try {
-            const filename = `upload-${Date.now()}-${file.name}`;
-            const { error: uploadError } = await supabase.storage
-                .from('offer-images')
-                .upload(filename, file, { contentType: file.type, upsert: false });
+            // 1. Get signed upload URL from server action
+            const uploadResult = await getSignedUploadUrl(file.name, file.type, 'offer-images');
 
-            if (uploadError) throw uploadError;
+            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.publicUrl) {
+                showToast('Fehler beim Initialisieren des Uploads: ' + (uploadResult.error || 'Keine URL erhalten'), 'error');
+                setUploadingImage(false);
+                return;
+            }
 
-            const { data: urlData } = supabase.storage.from('offer-images').getPublicUrl(filename);
+            // 2. Upload file directly to signed URL
+            const uploadResponse = await fetch(uploadResult.signedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type,
+                },
+            });
 
-            const { data: newLibraryEntry, error: libraryError } = await supabase
-                .from('image_library')
-                .insert({
-                    url: urlData.publicUrl,
-                    product_name: editForm.product_name || 'Uploaded'
-                })
-                .select('id, url, product_name')
-                .single();
+            if (!uploadResponse.ok) {
+                console.error('Upload response status:', uploadResponse.status);
+                showToast('Fehler beim Hochladen der Datei.', 'error');
+                setUploadingImage(false);
+                return;
+            }
 
-            if (libraryError) throw libraryError;
+            // 3. Register in Image Library using secure server action
+            const result = await addToImageLibrary(
+                uploadResult.publicUrl,
+                editForm.product_name || 'Uploaded'
+            );
 
-            if (newLibraryEntry) {
-                setLibraryImages(prev => [newLibraryEntry, ...prev]);
-                setEditForm({ ...editForm, image_id: newLibraryEntry.id });
+            if (!result.success) {
+                showToast(result.error || 'Fehler beim Speichern in Bibliothek', 'error');
+                return;
+            }
+
+            if (result.imageData) {
+                setLibraryImages(prev => [result.imageData!, ...prev]);
+                setEditForm({ ...editForm, image_id: result.imageData!.id });
                 showToast('Bild erfolgreich hochgeladen!', 'success');
                 setShowImageGallery(false);
             }
+
         } catch (err: any) {
             console.error(err);
             showToast('Fehler beim Hochladen: ' + (err.message || err), 'error');

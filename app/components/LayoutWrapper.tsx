@@ -56,6 +56,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     };
 
     const navLinks = [
+        { href: '/', label: 'Startseite' },
         { href: '/shops', label: 'Alle Märkte' },
         { href: '/offers', label: 'Angebote' },
         { href: '/for-shops', label: 'Für Shops' },

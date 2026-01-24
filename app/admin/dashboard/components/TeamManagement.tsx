@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { promoteToAdmin, demoteAdmin, deleteUser } from '@/app/actions/teams';
 import { TeamMember, UserRole } from './types';
 
 interface TeamManagementProps {
@@ -116,33 +117,11 @@ export default function TeamManagement({
         }
     };
 
-    // FIXED: Demote admin to regular user - "Rolle entziehen"
+    // Demote admin to regular user via Server Action
     const handleDemoteAdmin = async (memberId: string) => {
-        console.log('[TeamManagement] handleDemoteAdmin called with memberId:', memberId);
-
-        // Prevent self-demotion
-        if (memberId === userId) {
-            console.log('[TeamManagement] Attempted self-demotion, blocking');
-            showToast('Sie können sich nicht selbst herabstufen.', 'error');
-            setDemoteConfirm(null);
-            return;
-        }
-
-        // Find the member to check their role
         const member = teamMembers.find(m => m.id === memberId);
-        console.log('[TeamManagement] Found member:', member);
-
         if (!member) {
-            console.log('[TeamManagement] Member not found in teamMembers list');
             showToast('Teammitglied nicht gefunden.', 'error');
-            setDemoteConfirm(null);
-            return;
-        }
-
-        // Prevent demoting superadmins
-        if (member.role === 'superadmin') {
-            console.log('[TeamManagement] Attempted to demote superadmin, blocking');
-            showToast('Superadmins können nicht herabgestuft werden.', 'error');
             setDemoteConfirm(null);
             return;
         }
@@ -150,32 +129,14 @@ export default function TeamManagement({
         setDemotingUser(true);
 
         try {
-            console.log('[TeamManagement] Attempting to update role to "user" for id:', memberId);
+            const result = await demoteAdmin(memberId);
 
-            // Perform the database update
-            const { data: updateData, error: updateError } = await supabase
-                .from('profiles')
-                .update({ role: 'user' })
-                .eq('id', memberId)
-                .select()
-                .single();
-
-            console.log('[TeamManagement] Demote update result:', { updateData, updateError });
-
-            if (updateError) {
-                console.error('[TeamManagement] Database error demoting admin:', updateError);
-                showToast('Fehler beim Herabstufen: ' + updateError.message, 'error');
+            if (!result.success) {
+                showToast('Fehler beim Herabstufen: ' + result.error, 'error');
             } else {
-                console.log('[TeamManagement] Successfully demoted admin, removing from team list');
-
-                // Remove from team members list
                 setTeamMembers(prev => prev.filter(m => m.id !== memberId));
 
-                // Add back to users list
-                const demotedUser: TeamMember = {
-                    ...member,
-                    role: 'user'
-                };
+                const demotedUser: TeamMember = { ...member, role: 'user' };
                 setUsers(prev => [demotedUser, ...prev]);
 
                 showToast('Admin-Rechte erfolgreich entzogen.', 'success');
@@ -233,28 +194,18 @@ export default function TeamManagement({
         }
     };
 
-    // Delete user from database
+    // Delete user via Server Action
     const handleDeleteUser = async () => {
         if (!selectedUser) return;
 
-        console.log('[TeamManagement] Deleting user:', selectedUser.id);
         setDeletingUser(true);
 
         try {
-            const { error: deleteError } = await supabase
-                .from('profiles')
-                .delete()
-                .eq('id', selectedUser.id);
+            const result = await deleteUser(selectedUser.id);
 
-            console.log('[TeamManagement] Delete result:', { deleteError });
-
-            if (deleteError) {
-                console.error('[TeamManagement] Error deleting user:', deleteError);
-                showToast('Fehler beim Löschen: ' + deleteError.message, 'error');
+            if (!result.success) {
+                showToast('Fehler beim Löschen: ' + result.error, 'error');
             } else {
-                console.log('[TeamManagement] Successfully deleted user');
-
-                // Remove from users list
                 setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
                 setUsersTotalCount(prev => prev - 1);
 
@@ -279,32 +230,20 @@ export default function TeamManagement({
         };
     }, []);
 
-    // FIXED: Promote user to admin from modal
+    // Promote user to admin via Server Action
     const handlePromoteToAdminFromModal = async () => {
         if (!selectedUser) {
-            console.log('[TeamManagement] No selected user for modal promotion');
             return;
         }
 
-        console.log('[TeamManagement] Promoting user from modal:', selectedUser);
         setPromotingToAdmin(true);
 
         try {
-            const { data: updateData, error: updateError } = await supabase
-                .from('profiles')
-                .update({ role: 'admin' })
-                .eq('id', selectedUser.id)
-                .select()
-                .single();
+            const result = await promoteToAdmin(selectedUser.id);
 
-            console.log('[TeamManagement] Modal promote result:', { updateData, updateError });
-
-            if (updateError) {
-                console.error('[TeamManagement] Error promoting user from modal:', updateError);
-                showToast('Fehler beim Hochstufen: ' + updateError.message, 'error');
+            if (!result.success) {
+                showToast('Fehler beim Hochstufen: ' + result.error, 'error');
             } else {
-                console.log('[TeamManagement] Successfully promoted user from modal');
-
                 // Add to team members list
                 const newMember: TeamMember = {
                     id: selectedUser.id,

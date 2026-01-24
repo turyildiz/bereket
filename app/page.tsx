@@ -28,7 +28,7 @@ export default async function Home() {
   // Fetch 10 recent offers from premium markets for hero floating cards
   const { data: premiumOffers } = await supabase
     .from('offers')
-    .select('id, product_name, price, market_id, image_library(url), markets!inner(id, slug, name, city, is_premium, is_active)')
+    .select('id, product_name, price, unit, market_id, image_library(url), markets!inner(id, slug, name, city, is_premium, is_active)')
     .eq('markets.is_premium', true)
     .eq('markets.is_active', true)
     .eq('status', 'live')
@@ -36,9 +36,9 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(10);
 
-  // Select 2 random offers for hero display
-  const heroOffers = premiumOffers && premiumOffers.length >= 2
-    ? premiumOffers.sort(() => Math.random() - 0.5).slice(0, 2)
+  // Select 3 random offers for hero display
+  const heroOffers = premiumOffers && premiumOffers.length >= 3
+    ? premiumOffers.sort(() => Math.random() - 0.5).slice(0, 3)
     : premiumOffers || [];
 
   return (
@@ -112,7 +112,7 @@ export default async function Home() {
                     {/* Primary Card */}
                     <Link
                       href={`/shop/${(heroOffers[0].markets as unknown as { slug: string }).slug}`}
-                      className="block bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float cursor-pointer"
+                      className="relative z-10 block bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float cursor-pointer"
                     >
                       <div className="relative rounded-2xl overflow-hidden mb-4">
                         <img
@@ -129,7 +129,11 @@ export default async function Home() {
                         {(heroOffers[0].markets as unknown as { name: string; city: string }).name} • {(heroOffers[0].markets as unknown as { name: string; city: string }).city}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>{heroOffers[0].price}</span>
+                        <div>
+                          <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>{heroOffers[0].price}€</span>
+                          {/* @ts-ignore - unit might be missing in type but fetched in query */}
+                          {heroOffers[0].unit && <span className="text-sm font-medium ml-1" style={{ color: 'var(--warm-gray)' }}>/ {heroOffers[0].unit}</span>}
+                        </div>
                         <span className="text-xs px-3 py-1.5 rounded-full font-bold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>Angebot</span>
                       </div>
                     </Link>
@@ -149,7 +153,44 @@ export default async function Home() {
                           />
                           <div>
                             <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>{heroOffers[1].product_name}</p>
-                            <p className="text-xl font-black" style={{ color: 'var(--terracotta)' }}>{heroOffers[1].price}</p>
+                            <div>
+                              <p className="text-xl font-black inline" style={{ color: 'var(--terracotta)' }}>{heroOffers[1].price}€</p>
+                              {/* @ts-ignore */}
+                              {heroOffers[1].unit && <span className="text-xs font-medium ml-1" style={{ color: 'var(--warm-gray)' }}>/ {heroOffers[1].unit}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    )}
+
+                    {/* Tertiary Card (Medium Size) - NEW */}
+                    {heroOffers.length > 2 && (
+                      <Link
+                        href={`/shop/${(heroOffers[2].markets as unknown as { slug: string }).slug}`}
+                        className="absolute -top-20 -right-16 block bg-white rounded-2xl shadow-xl p-4 w-64 transform rotate-6 hover:rotate-0 transition-all duration-500 animate-float cursor-pointer z-0 hover:z-20"
+                        style={{ animationDelay: '1.5s' }}
+                      >
+                        <div className="relative rounded-xl overflow-hidden mb-3">
+                          <img
+                            src={(heroOffers[2].image_library as unknown as { url: string })?.url || 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=400'}
+                            alt={heroOffers[2].product_name}
+                            className="w-full h-32 object-cover"
+                          />
+                          <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm" style={{ background: 'rgba(255,255,255,0.9)', color: 'var(--terracotta)' }}>
+                            -25%
+                          </div>
+                        </div>
+                        <h4 className="font-bold text-base mb-1 truncate" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
+                          {heroOffers[2].product_name}
+                        </h4>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs truncate max-w-[50%]" style={{ color: 'var(--warm-gray)' }}>
+                            {(heroOffers[2].markets as unknown as { name: string }).name}
+                          </p>
+                          <div>
+                            <span className="text-lg font-black" style={{ color: 'var(--terracotta)' }}>{heroOffers[2].price}€</span>
+                            {/* @ts-ignore */}
+                            {heroOffers[2].unit && <span className="text-xs font-medium ml-1" style={{ color: 'var(--warm-gray)' }}>/ {heroOffers[2].unit}</span>}
                           </div>
                         </div>
                       </Link>

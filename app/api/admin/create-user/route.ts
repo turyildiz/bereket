@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createServiceClient } from '@/utils/supabase/service';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -40,24 +40,8 @@ export async function POST(request: Request) {
             );
         }
 
-        // Create admin client with service role key
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-        if (!supabaseServiceKey) {
-            console.error('[Create User API] Service role key not found');
-            return NextResponse.json(
-                { error: 'Server configuration error' },
-                { status: 500 }
-            );
-        }
-
-        const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey, {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        });
+        // Use standardized service client
+        const adminClient = createServiceClient();
 
         // Create the user using Supabase Admin API
         const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
@@ -74,19 +58,45 @@ export async function POST(request: Request) {
             );
         }
 
-        // The profile entry should be created automatically by a database trigger
-        // Wait a moment and fetch the profile to confirm
+        // The profile entry should be created automatically by a database trigger.
+        // Wait briefly, then verify the profile exists.
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        const { data: newProfile } = await supabase
+        let { data: newProfile } = await adminClient
             .from('profiles')
             .select('*')
             .eq('id', newUser.user.id)
             .single();
 
+        // If the trigger didn't create the profile, insert it manually
+        if (!newProfile) {
+            const { data: manualProfile, error: profileError } = await adminClient
+                .from('profiles')
+                .insert({
+                    id: newUser.user.id,
+                    email: newUser.user.email,
+                    role: 'user',
+                })
+                .select()
+                .single();
+
+            if (profileError || !manualProfile) {
+                // Rollback: delete the Auth user to prevent a ghost account
+                console.error('[Create User API] Profile creation failed, rolling back Auth user:', profileError);
+                await adminClient.auth.admin.deleteUser(newUser.user.id);
+
+                return NextResponse.json(
+                    { error: 'Profil konnte nicht erstellt werden. Auth-Konto wurde zurückgesetzt.' },
+                    { status: 500 }
+                );
+            }
+
+            newProfile = manualProfile;
+        }
+
         return NextResponse.json({
             success: true,
-            user: newProfile || { id: newUser.user.id, email: newUser.user.email, role: 'user', created_at: new Date().toISOString() }
+            user: newProfile,
         });
 
     } catch (error) {
