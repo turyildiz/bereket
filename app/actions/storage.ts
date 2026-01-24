@@ -12,11 +12,28 @@ interface SignedUploadUrlResult {
     path?: string;
 }
 
+// Allowed buckets — prevents access to internal/private buckets
+const ALLOWED_BUCKETS = ['market-assets', 'offer-images'];
+
+// Allowed MIME types for image uploads
+const ALLOWED_MIME_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/avif',
+];
+
+// Max file extension length to prevent abuse
+const MAX_EXTENSION_LENGTH = 5;
+
 /**
  * Generates a signed upload URL for secure file uploads to Supabase Storage.
  *
  * Security:
  * - Verifies the requester is an Admin using is_admin() helper.
+ * - Validates bucket against allowlist.
+ * - Validates file content-type against allowed MIME types.
  * - Uses service_role client to generate signed upload URL.
  * - Enforces UUID filename rule to prevent path traversal and ensure uniqueness.
  */
@@ -33,7 +50,17 @@ export async function getSignedUploadUrl(
         return { success: false, error: 'Ungültiger Bucket-Name.' };
     }
 
-    // 2. Verify admin permissions
+    // 2. Validate bucket against allowlist
+    if (!ALLOWED_BUCKETS.includes(bucket)) {
+        return { success: false, error: 'Ungültiger Bucket. Erlaubt: ' + ALLOWED_BUCKETS.join(', ') };
+    }
+
+    // 3. Validate content type
+    if (!fileType || !ALLOWED_MIME_TYPES.includes(fileType)) {
+        return { success: false, error: 'Ungültiger Dateityp. Erlaubt: JPEG, PNG, WebP, GIF, AVIF.' };
+    }
+
+    // 4. Verify admin permissions
     const authClient = await createClient();
     const { data: { user }, error: authError } = await authClient.auth.getUser();
 
@@ -46,13 +73,17 @@ export async function getSignedUploadUrl(
         return { success: false, error: 'Keine Berechtigung. Nur Admins können Dateien hochladen.' };
     }
 
-    // 3. Generate secure path
-    // Extract file extension or default to bin if not found
-    const fileExtMatch = fileName.match(/\.([^.]+)$/);
-    const fileExt = fileExtMatch ? fileExtMatch[1] : 'bin';
+    // 5. Generate secure path with validated extension
+    const fileExtMatch = fileName.match(/\.([a-zA-Z0-9]+)$/);
+    const fileExt = fileExtMatch ? fileExtMatch[1].toLowerCase() : 'bin';
+
+    if (fileExt.length > MAX_EXTENSION_LENGTH || fileExt === 'bin') {
+        return { success: false, error: 'Ungültige Dateiendung.' };
+    }
+
     const uuidFileName = `${randomUUID()}.${fileExt}`;
 
-    // 4. Generate Signed URL using service_role
+    // 6. Generate Signed URL using service_role
     const serviceClient = createServiceClient();
 
     try {
@@ -72,7 +103,7 @@ export async function getSignedUploadUrl(
             return { success: false, error: 'Keine Upload-URL erhalten.' };
         }
 
-        // 5. Get Public URL
+        // 7. Get Public URL
         const { data: publicUrlData } = serviceClient.storage
             .from(bucket)
             .getPublicUrl(data.path);

@@ -25,6 +25,11 @@ const OfferDataSchema = z.object({
 
 type OfferData = z.infer<typeof OfferDataSchema>;
 
+// Schema for bulk operations — validates each ID is a UUID and caps array size
+const BulkIdsSchema = z.array(z.string().uuid('Ungültige Angebots-ID.'))
+    .min(1, 'Keine Angebote angegeben.')
+    .max(100, 'Maximal 100 Angebote pro Bulk-Aktion.');
+
 // ============================================================================
 // Result types
 // ============================================================================
@@ -134,6 +139,11 @@ export async function updateOffer(offerId: string, rawData: unknown): Promise<Ac
     if (!parsed.success) {
         const firstError = parsed.error.issues[0];
         return { success: false, error: `Validierungsfehler: ${firstError.path.join('.')} – ${firstError.message}` };
+    }
+
+    // Reject empty updates
+    if (Object.keys(parsed.data).length === 0) {
+        return { success: false, error: 'Keine Änderungen angegeben.' };
     }
 
     const serviceClient = createServiceClient();
@@ -246,6 +256,11 @@ export async function publishOffer(offerId: string): Promise<ActionResult> {
         return { success: false, error: 'Angebot nicht gefunden.' };
     }
 
+    // Guard: reject if already live
+    if (existing.status === 'live') {
+        return { success: false, error: 'Angebot ist bereits veröffentlicht.' };
+    }
+
     // Update status to 'live'
     const { error: updateError } = await serviceClient
         .from('offers')
@@ -307,9 +322,11 @@ export async function unpublishOffer(offerId: string): Promise<ActionResult> {
  *
  * Security: session → is_admin() → service_role delete
  */
-export async function bulkDeleteOffers(offerIds: string[]): Promise<ActionResult> {
-    if (!Array.isArray(offerIds) || offerIds.length === 0) {
-        return { success: false, error: 'Keine Angebote zum Löschen angegeben.' };
+export async function bulkDeleteOffers(offerIds: unknown): Promise<ActionResult> {
+    const parsed = BulkIdsSchema.safeParse(offerIds);
+    if (!parsed.success) {
+        const firstError = parsed.error.issues[0];
+        return { success: false, error: firstError.message };
     }
 
     const auth = await verifyAdmin();
@@ -323,7 +340,7 @@ export async function bulkDeleteOffers(offerIds: string[]): Promise<ActionResult
     const { error: deleteError } = await serviceClient
         .from('offers')
         .delete()
-        .in('id', offerIds);
+        .in('id', parsed.data);
 
     if (deleteError) {
         console.error('[offers/bulkDeleteOffers] Bulk delete failed:', deleteError);
@@ -338,9 +355,11 @@ export async function bulkDeleteOffers(offerIds: string[]): Promise<ActionResult
  *
  * Security: session → is_admin() → service_role update
  */
-export async function bulkPublishOffers(offerIds: string[]): Promise<ActionResult> {
-    if (!Array.isArray(offerIds) || offerIds.length === 0) {
-        return { success: false, error: 'Keine Angebote zum Veröffentlichen angegeben.' };
+export async function bulkPublishOffers(offerIds: unknown): Promise<ActionResult> {
+    const parsed = BulkIdsSchema.safeParse(offerIds);
+    if (!parsed.success) {
+        const firstError = parsed.error.issues[0];
+        return { success: false, error: firstError.message };
     }
 
     const auth = await verifyAdmin();
@@ -354,7 +373,7 @@ export async function bulkPublishOffers(offerIds: string[]): Promise<ActionResul
     const { error: updateError } = await serviceClient
         .from('offers')
         .update({ status: 'live' })
-        .in('id', offerIds);
+        .in('id', parsed.data);
 
     if (updateError) {
         console.error('[offers/bulkPublishOffers] Bulk publish failed:', updateError);

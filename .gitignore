@@ -45,3 +45,23 @@ next-env.d.ts
 
 # Windows special files
 nul
+
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Cleanup / Backup
+_backup_trash/
+
+# AI Tools
+.agent/
+.claude/
+
+# Misc
+*.zip
+*.png
