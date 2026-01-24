@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { createMarket, updateMarket, updateMarketStatus, deleteMarket, seedSampleMarkets } from '@/app/actions/markets';
+import { getUploadUrl } from '@/app/actions/storage';
 import { Market, MarketFormData } from './types';
 
 interface MarketManagerProps {
@@ -234,44 +236,74 @@ export default function MarketManager({
 
         if (logoFile) {
             setUploadingLogo(true);
-            const fileExt = logoFile.name.split('.').pop();
-            const fileName = `logo-${Date.now()}.${fileExt}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('market-assets')
-                .upload(fileName, logoFile);
 
-            if (uploadError) {
-                showToast('Fehler beim Logo-Upload: ' + uploadError.message, 'error');
+            // Get signed upload URL from server action
+            const uploadResult = await getUploadUrl(logoFile.name, 'market-assets');
+
+            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.path) {
+                showToast('Fehler beim Logo-Upload: ' + (uploadResult.error || 'Keine Upload-URL erhalten'), 'error');
                 setLoading(false);
                 setUploadingLogo(false);
                 return;
             }
 
+            // Upload file directly to signed URL
+            const uploadResponse = await fetch(uploadResult.signedUrl, {
+                method: 'PUT',
+                body: logoFile,
+                headers: {
+                    'Content-Type': logoFile.type,
+                },
+            });
+
+            if (!uploadResponse.ok) {
+                showToast('Fehler beim Logo-Upload: Upload fehlgeschlagen', 'error');
+                setLoading(false);
+                setUploadingLogo(false);
+                return;
+            }
+
+            // Get public URL for the uploaded file
             const { data: publicUrlData } = supabase.storage
                 .from('market-assets')
-                .getPublicUrl(uploadData.path);
+                .getPublicUrl(uploadResult.path);
             finalLogoUrl = publicUrlData.publicUrl;
             setUploadingLogo(false);
         }
 
         if (headerFile) {
             setUploadingHeader(true);
-            const fileExt = headerFile.name.split('.').pop();
-            const fileName = `header-${Date.now()}.${fileExt}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('market-assets')
-                .upload(fileName, headerFile);
 
-            if (uploadError) {
-                showToast('Fehler beim Header-Upload: ' + uploadError.message, 'error');
+            // Get signed upload URL from server action
+            const uploadResult = await getUploadUrl(headerFile.name, 'market-assets');
+
+            if (!uploadResult.success || !uploadResult.signedUrl || !uploadResult.path) {
+                showToast('Fehler beim Header-Upload: ' + (uploadResult.error || 'Keine Upload-URL erhalten'), 'error');
                 setLoading(false);
                 setUploadingHeader(false);
                 return;
             }
 
+            // Upload file directly to signed URL
+            const uploadResponse = await fetch(uploadResult.signedUrl, {
+                method: 'PUT',
+                body: headerFile,
+                headers: {
+                    'Content-Type': headerFile.type,
+                },
+            });
+
+            if (!uploadResponse.ok) {
+                showToast('Fehler beim Header-Upload: Upload fehlgeschlagen', 'error');
+                setLoading(false);
+                setUploadingHeader(false);
+                return;
+            }
+
+            // Get public URL for the uploaded file
             const { data: publicUrlData } = supabase.storage
                 .from('market-assets')
-                .getPublicUrl(uploadData.path);
+                .getPublicUrl(uploadResult.path);
             finalHeaderUrl = publicUrlData.publicUrl;
             setUploadingHeader(false);
         }
@@ -295,29 +327,20 @@ export default function MarketManager({
         };
 
         if (editingMarket) {
-            const { error } = await supabase
-                .from('markets')
-                .update(marketData)
-                .eq('id', editingMarket.id)
-                .select()
-                .single();
+            const result = await updateMarket(editingMarket.id, marketData);
 
-            if (error) {
-                showToast('Fehler beim Speichern: ' + error.message, 'error');
+            if (!result.success) {
+                showToast('Fehler beim Speichern: ' + result.error, 'error');
             } else {
                 await fetchMarkets(debouncedQuery, currentPage);
                 resetForm();
                 showToast('Änderungen erfolgreich gespeichert!', 'success');
             }
         } else {
-            const { error } = await supabase
-                .from('markets')
-                .insert(marketData)
-                .select()
-                .single();
+            const result = await createMarket(marketData);
 
-            if (error) {
-                showToast('Fehler beim Erstellen: ' + error.message, 'error');
+            if (!result.success) {
+                showToast('Fehler beim Erstellen: ' + result.error, 'error');
             } else {
                 setCurrentPage(1);
                 await fetchMarkets(debouncedQuery, 1);
@@ -377,13 +400,10 @@ export default function MarketManager({
     };
 
     const handleDeleteMarket = async (id: string) => {
-        const { error } = await supabase
-            .from('markets')
-            .delete()
-            .eq('id', id);
+        const result = await deleteMarket(id);
 
-        if (error) {
-            showToast('Fehler beim Löschen: ' + error.message, 'error');
+        if (!result.success) {
+            showToast('Fehler beim Löschen: ' + result.error, 'error');
         } else {
             await fetchMarkets(debouncedQuery, currentPage);
             showToast('Markt erfolgreich gelöscht!', 'success');
@@ -400,14 +420,10 @@ export default function MarketManager({
         if (!toggleActiveConfirm) return;
 
         const { id, currentStatus } = toggleActiveConfirm;
+        const result = await updateMarketStatus(id, !currentStatus);
 
-        const { error } = await supabase
-            .from('markets')
-            .update({ is_active: !currentStatus })
-            .eq('id', id);
-
-        if (error) {
-            showToast('Fehler beim Aktualisieren: ' + error.message, 'error');
+        if (!result.success) {
+            showToast('Fehler beim Aktualisieren: ' + result.error, 'error');
         } else {
             await fetchMarkets(debouncedQuery, currentPage);
             showToast(`Markt ${!currentStatus ? 'aktiviert' : 'deaktiviert'}!`, 'success');
@@ -419,102 +435,15 @@ export default function MarketManager({
         setShowSeedConfirm(false);
         setSeeding(true);
 
-        const sampleMarkets = [
-            {
-                name: 'Yildiz Market',
-                city: 'Frankfurt',
-                full_address: 'Musterstraße 123, 60311 Frankfurt',
-                latitude: 50.1109,
-                longitude: 8.6821,
-                customer_phone: '+49 69 12345678',
-                whatsapp_numbers: ['4915112345678', '4915187654321'],
-                logo_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop',
-                header_url: 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=1200&h=400&fit=crop',
-                about_text: 'Willkommen bei Yildiz Market! Seit über 20 Jahren versorgen wir unsere Kunden mit frischen Lebensmitteln aus der Türkei.',
-                features: ['Halal-zertifiziert', 'Frische Backwaren täglich', 'Parkmöglichkeit'],
-                opening_hours: [
-                    { day: 'Montag - Freitag', time: '08:00 - 20:00' },
-                    { day: 'Samstag', time: '08:00 - 18:00' },
-                    { day: 'Sonntag', time: 'Geschlossen' }
-                ],
-                is_premium: true
-            },
-            {
-                name: 'Bereket Feinkost',
-                city: 'Berlin',
-                full_address: 'Kottbusser Damm 78, 10967 Berlin',
-                latitude: 52.4934,
-                longitude: 13.4184,
-                customer_phone: '+49 30 11223344',
-                whatsapp_numbers: ['4915211223344'],
-                logo_url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=200&h=200&fit=crop',
-                header_url: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=1200&h=400&fit=crop',
-                about_text: 'Bereket Feinkost bietet authentische orientalische Spezialitäten im Herzen von Kreuzberg.',
-                features: ['Bio-Produkte', 'Lieferservice', 'Großhandel möglich'],
-                opening_hours: [
-                    { day: 'Montag - Samstag', time: '07:00 - 21:00' },
-                    { day: 'Sonntag', time: '09:00 - 18:00' }
-                ],
-                is_premium: true
-            },
-            {
-                name: 'Istanbul Supermarkt',
-                city: 'München',
-                full_address: 'Goethestraße 15, 80336 München',
-                latitude: 48.1351,
-                longitude: 11.5820,
-                customer_phone: '+49 89 55667788',
-                whatsapp_numbers: ['4915355667788', '4915399887766'],
-                logo_url: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=200&h=200&fit=crop',
-                header_url: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1200&h=400&fit=crop',
-                about_text: 'Der größte türkische Supermarkt in München mit über 5000 Produkten.',
-                features: ['Halal-Fleischtheke', 'Frisches Gemüse', 'Türkische Süßwaren', 'Parkhaus'],
-                opening_hours: [
-                    { day: 'Montag - Freitag', time: '08:00 - 20:00' },
-                    { day: 'Samstag', time: '08:00 - 18:00' },
-                    { day: 'Sonntag', time: 'Geschlossen' }
-                ],
-                is_premium: true
-            }
-        ];
+        const result = await seedSampleMarkets();
 
-        const { data: insertedMarkets, error: marketError } = await supabase
-            .from('markets')
-            .insert(sampleMarkets)
-            .select();
-
-        if (marketError) {
-            showToast('Fehler beim Einfügen der Märkte: ' + marketError.message, 'error');
-            setSeeding(false);
-            return;
-        }
-
-        if (!insertedMarkets || insertedMarkets.length === 0) {
-            showToast('Keine Märkte wurden eingefügt.', 'error');
-            setSeeding(false);
-            return;
-        }
-
-        const sampleOffers = [
-            { market_id: insertedMarkets[0].id, product_name: 'Frische Granatäpfel', price: '1.49€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[0].id, product_name: 'Türkischer Honig', price: '8.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[0].id, product_name: 'Fladenbrot 3er Pack', price: '1.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[1].id, product_name: 'Sucuk 500g', price: '5.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[1].id, product_name: 'Weißer Käse', price: '4.49€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[1].id, product_name: 'Oliven Mix 1kg', price: '6.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1593001874117-c99c800e3eb5?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[2].id, product_name: 'Baklava 1kg', price: '12.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1519676867240-f03562e64548?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[2].id, product_name: 'Ayran 10er Pack', price: '3.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&h=300&fit=crop' },
-            { market_id: insertedMarkets[2].id, product_name: 'Gewürzmischung Köfte', price: '2.99€', expires_at: '2026-12-31', image_url: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&h=300&fit=crop' },
-        ];
-
-        const { error: offerError } = await supabase
-            .from('offers')
-            .insert(sampleOffers);
-
-        if (offerError) {
-            showToast('Märkte erstellt, aber Fehler bei Angeboten: ' + offerError.message, 'error');
+        if (!result.success) {
+            showToast(result.error || 'Fehler beim Einfügen der Daten.', 'error');
+        } else if (result.error) {
+            // Partial success (markets inserted but offers failed)
+            showToast(result.error, 'error');
         } else {
-            showToast('Erfolgreich: 3 Märkte und 9 Angebote eingefügt!', 'success');
+            showToast(`Erfolgreich: ${result.marketsInserted} Märkte und ${result.offersInserted} Angebote eingefügt!`, 'success');
         }
 
         setCurrentPage(1);
