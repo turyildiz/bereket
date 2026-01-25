@@ -446,6 +446,7 @@ body {
 /* ===== FOCUS STYLES ===== */
 input:focus,
 select:focus,
+textarea:focus,
 button:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--saffron-glow);

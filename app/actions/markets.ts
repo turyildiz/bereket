@@ -13,8 +13,10 @@ const OpeningHoursSchema = z.object({
     time: z.string().min(1),
 });
 
+const MarketIdSchema = z.string().uuid('Ungültige Markt-ID (kein gültiges UUID-Format).');
+
 const MarketDataSchema = z.object({
-    slug: z.string().min(1, 'Slug ist erforderlich.'),
+    slug: z.string().min(1, 'Slug ist erforderlich.').regex(/^[a-z0-9-]+$/, 'Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.'),
     name: z.string().min(1, 'Name ist erforderlich.'),
     city: z.string().min(1, 'Stadt ist erforderlich.'),
     zip_code: z.string().nullable(),
@@ -77,7 +79,7 @@ async function verifyAdmin(): Promise<{ userId: string } | { error: string }> {
 /**
  * Creates a new market.
  *
- * Security: session → is_admin() → Zod validation → service_role insert
+ * Security: session → is_admin() → Zod validation → slug uniqueness check → service_role insert
  */
 export async function createMarket(rawData: unknown): Promise<ActionResult> {
     const auth = await verifyAdmin();
@@ -92,6 +94,22 @@ export async function createMarket(rawData: unknown): Promise<ActionResult> {
     }
 
     const serviceClient = createServiceClient();
+
+    // Check if slug already exists (prevents duplicate constraint errors)
+    const { data: existingSlug, error: slugCheckError } = await serviceClient
+        .from('markets')
+        .select('id')
+        .eq('slug', parsed.data.slug)
+        .maybeSingle();
+
+    if (slugCheckError) {
+        console.error('[markets/createMarket] Slug check failed:', slugCheckError);
+        return { success: false, error: 'Datenbankfehler bei der Slug-Prüfung.' };
+    }
+
+    if (existingSlug) {
+        return { success: false, error: 'Ein Markt mit diesem Slug existiert bereits. Bitte wähle einen anderen Slug.' };
+    }
 
     const { error: insertError } = await serviceClient
         .from('markets')
@@ -113,8 +131,10 @@ export async function createMarket(rawData: unknown): Promise<ActionResult> {
  * Security: session → is_admin() → Zod validation → market exists → service_role update
  */
 export async function updateMarket(marketId: string, rawData: unknown): Promise<ActionResult> {
-    if (!marketId || typeof marketId !== 'string') {
-        return { success: false, error: 'Ungültige Markt-ID.' };
+    // Validate marketId is a valid UUID
+    const idParsed = MarketIdSchema.safeParse(marketId);
+    if (!idParsed.success) {
+        return { success: false, error: idParsed.error.issues[0].message };
     }
 
     const auth = await verifyAdmin();
@@ -130,15 +150,34 @@ export async function updateMarket(marketId: string, rawData: unknown): Promise<
 
     const serviceClient = createServiceClient();
 
-    // Verify market exists
+    // Verify market exists and get current slug
     const { data: existing, error: fetchError } = await serviceClient
         .from('markets')
-        .select('id')
+        .select('id, slug')
         .eq('id', marketId)
         .single();
 
     if (fetchError || !existing) {
         return { success: false, error: 'Markt nicht gefunden.' };
+    }
+
+    // If slug is being changed, check for uniqueness
+    if (parsed.data.slug && parsed.data.slug !== existing.slug) {
+        const { data: existingSlug, error: slugCheckError } = await serviceClient
+            .from('markets')
+            .select('id')
+            .eq('slug', parsed.data.slug)
+            .neq('id', marketId) // Exclude current market
+            .maybeSingle();
+
+        if (slugCheckError) {
+            console.error('[markets/updateMarket] Slug check failed:', slugCheckError);
+            return { success: false, error: 'Datenbankfehler bei der Slug-Prüfung.' };
+        }
+
+        if (existingSlug) {
+            return { success: false, error: 'Ein anderer Markt mit diesem Slug existiert bereits.' };
+        }
     }
 
     const { error: updateError } = await serviceClient
@@ -163,8 +202,10 @@ export async function updateMarketStatus(
     marketId: string,
     isActive: boolean
 ): Promise<ActionResult> {
-    if (!marketId || typeof marketId !== 'string') {
-        return { success: false, error: 'Ungültige Markt-ID.' };
+    // Validate marketId is a valid UUID
+    const idParsed = MarketIdSchema.safeParse(marketId);
+    if (!idParsed.success) {
+        return { success: false, error: idParsed.error.issues[0].message };
     }
 
     if (typeof isActive !== 'boolean') {
@@ -207,8 +248,10 @@ export async function updateMarketStatus(
  * Security: session → is_admin() → market exists → service_role delete
  */
 export async function deleteMarket(marketId: string): Promise<ActionResult> {
-    if (!marketId || typeof marketId !== 'string') {
-        return { success: false, error: 'Ungültige Markt-ID.' };
+    // Validate marketId is a valid UUID
+    const idParsed = MarketIdSchema.safeParse(marketId);
+    if (!idParsed.success) {
+        return { success: false, error: idParsed.error.issues[0].message };
     }
 
     const auth = await verifyAdmin();

@@ -199,18 +199,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                                     : 'Keine aktuellen Angebote'}
                         </p>
                     </div>
-                    <div
-                        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold cursor-default"
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.7)',
-                            backdropFilter: 'blur(10px)',
-                            color: 'var(--warm-gray)',
-                            border: '1px solid rgba(255, 255, 255, 0.5)'
-                        }}
-                    >
-                        <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--cardamom)' }}></span>
-                        KI-aktualisiert
-                    </div>
+
                 </div>
             </div>
 
@@ -315,73 +304,73 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                 <>
                     {/* Offers Grid or Category Empty State */}
                     {filteredOffers.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {filteredOffers.map((offer, idx) => (
-                            <div
-                                key={offer.id}
-                                className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in"
-                                style={{
-                                    background: 'rgba(255, 255, 255, 0.8)',
-                                    backdropFilter: 'blur(10px)',
-                                    WebkitBackdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(255, 255, 255, 0.5)',
-                                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
-                                    animationDelay: idx < INITIAL_LOAD ? `${0.1 + idx * 0.05}s` : '0s'
-                                }}
-                            >
-                                {/* Image */}
-                                <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
-                                    <img
-                                        src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
-                                        alt={offer.product_name}
-                                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                                    />
-                                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {filteredOffers.map((offer, idx) => (
+                                <div
+                                    key={offer.id}
+                                    className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in"
+                                    style={{
+                                        background: 'rgba(255, 255, 255, 0.8)',
+                                        backdropFilter: 'blur(10px)',
+                                        WebkitBackdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(255, 255, 255, 0.5)',
+                                        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
+                                        animationDelay: idx < INITIAL_LOAD ? `${0.1 + idx * 0.05}s` : '0s'
+                                    }}
+                                >
+                                    {/* Image */}
+                                    <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
+                                        <img
+                                            src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
+                                            alt={offer.product_name}
+                                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                    </div>
 
-                                {/* Content */}
-                                <div className="p-5">
-                                    <h3
-                                        className="font-bold text-xl mb-2"
-                                        style={{
-                                            fontFamily: 'var(--font-playfair)',
-                                            color: 'var(--charcoal)'
-                                        }}
-                                    >
-                                        {offer.product_name}
-                                    </h3>
+                                    {/* Content */}
+                                    <div className="p-5">
+                                        <h3
+                                            className="font-bold text-xl mb-2"
+                                            style={{
+                                                fontFamily: 'var(--font-playfair)',
+                                                color: 'var(--charcoal)'
+                                            }}
+                                        >
+                                            {offer.product_name}
+                                        </h3>
 
-                                    {/* AI-generated description */}
-                                    {offer.description && (
-                                        <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>
-                                            {offer.description}
+                                        {/* AI-generated description */}
+                                        {offer.description && (
+                                            <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>
+                                                {offer.description}
+                                            </p>
+                                        )}
+
+                                        <p className="text-xs mb-4" style={{ color: 'var(--warm-gray)', opacity: 0.8 }}>
+                                            {offer.expires_at
+                                                ? `Gültig bis ${new Date(offer.expires_at).toLocaleDateString('de-DE')}`
+                                                : 'Nur solange Vorrat reicht.'}
                                         </p>
-                                    )}
 
-                                    <p className="text-xs mb-4" style={{ color: 'var(--warm-gray)', opacity: 0.8 }}>
-                                        {offer.expires_at
-                                            ? `Gültig bis ${new Date(offer.expires_at).toLocaleDateString('de-DE')}`
-                                            : 'Nur solange Vorrat reicht.'}
-                                    </p>
-
-                                    <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
-                                        <div>
-                                            <span
-                                                className="text-2xl font-black"
-                                                style={{ color: 'var(--terracotta)' }}
-                                            >
-                                                {typeof offer.price === 'number' ? offer.price.toFixed(2) : offer.price} €
-                                            </span>
-                                            {offer.unit && (
-                                                <span className="text-sm ml-1" style={{ color: 'var(--warm-gray)' }}>
-                                                    / {offer.unit}
+                                        <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--sand)' }}>
+                                            <div>
+                                                <span
+                                                    className="text-2xl font-black"
+                                                    style={{ color: 'var(--terracotta)' }}
+                                                >
+                                                    {typeof offer.price === 'number' ? offer.price.toFixed(2) : offer.price} €
                                                 </span>
-                                            )}
+                                                {offer.unit && (
+                                                    <span className="text-sm ml-1" style={{ color: 'var(--warm-gray)' }}>
+                                                        / {offer.unit}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
                     ) : (
                         /* Category Empty State */
                         <div
@@ -466,15 +455,7 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                     <p className="mb-6 text-lg" style={{ color: 'var(--warm-gray)' }}>
                         Schauen Sie bald wieder vorbei!
                     </p>
-                    <button
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 cursor-pointer"
-                        style={{ background: 'var(--charcoal)', color: 'white' }}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                        Benachrichtigung aktivieren
-                    </button>
+
                 </div>
             )}
         </div>

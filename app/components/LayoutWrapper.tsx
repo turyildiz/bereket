@@ -17,6 +17,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
     // Newsletter form state
     const [newsletterEmail, setNewsletterEmail] = useState('');
+    const [newsletterHoneypot, setNewsletterHoneypot] = useState('');
     const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [newsletterMessage, setNewsletterMessage] = useState('');
 
@@ -36,7 +37,10 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
             const response = await fetch('/api/newsletter/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: newsletterEmail }),
+                body: JSON.stringify({
+                    email: newsletterEmail,
+                    website: newsletterHoneypot // Honeypot field
+                }),
             });
 
             const data = await response.json();
@@ -45,6 +49,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                 setNewsletterStatus('success');
                 setNewsletterMessage(data.message);
                 setNewsletterEmail('');
+                setNewsletterHoneypot('');
             } else {
                 setNewsletterStatus('error');
                 setNewsletterMessage(data.error || 'Ein Fehler ist aufgetreten.');
@@ -59,6 +64,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         { href: '/', label: 'Startseite' },
         { href: '/shops', label: 'Alle Märkte' },
         { href: '/offers', label: 'Angebote' },
+        { href: '/blog', label: 'Magazin' },
         { href: '/for-shops', label: 'Für Shops' },
     ];
 
@@ -255,6 +261,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                                     {[
                                         { label: 'Alle Märkte', href: '/shops' },
                                         { label: 'Aktuelle Angebote', href: '/offers' },
+                                        { label: 'Magazin', href: '/blog' },
                                         { label: 'Neue Shops', href: '/shops/new' },
                                         { label: 'Meine Favoriten', href: '/favorites' },
                                     ].map((item, idx) => (
@@ -303,6 +310,16 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                                 ) : (
                                     <form onSubmit={handleNewsletterSubmit}>
                                         <div className="flex gap-2">
+                                            {/* Honeypot field - hidden */}
+                                            <input
+                                                type="text"
+                                                name="website"
+                                                value={newsletterHoneypot}
+                                                onChange={(e) => setNewsletterHoneypot(e.target.value)}
+                                                style={{ display: 'none' }}
+                                                tabIndex={-1}
+                                                autoComplete="off"
+                                            />
                                             <input
                                                 type="email"
                                                 placeholder="Deine E-Mail"

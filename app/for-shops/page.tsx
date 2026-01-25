@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+import { submitShopInquiry } from '@/app/actions/submitShopInquiry';
+
 export default function ForShopsPage() {
     const [formData, setFormData] = useState({
         shopName: '',
@@ -11,6 +13,7 @@ export default function ForShopsPage() {
         phone: '',
         city: '',
         message: '',
+        website: '', // Honeypot field
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -26,25 +29,21 @@ export default function ForShopsPage() {
         e.preventDefault();
         setIsSubmitting(true);
 
-        // Create mailto link with form data
-        const subject = encodeURIComponent(`Neue Shop-Anfrage: ${formData.shopName}`);
-        const body = encodeURIComponent(
-            `Shop-Name: ${formData.shopName}\n` +
-            `Inhaber: ${formData.ownerName}\n` +
-            `E-Mail: ${formData.email}\n` +
-            `Telefon: ${formData.phone}\n` +
-            `Stadt: ${formData.city}\n\n` +
-            `Nachricht:\n${formData.message}`
-        );
+        try {
+            const result = await submitShopInquiry(formData);
 
-        // Open mailto link
-        window.location.href = `mailto:shops@bereket.market?subject=${subject}&body=${body}`;
-
-        // Show success message after a short delay
-        setTimeout(() => {
+            if (result.success) {
+                setIsSubmitted(true);
+            } else {
+                console.error('Submission error:', result.error);
+                alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+        } finally {
             setIsSubmitting(false);
-            setIsSubmitted(true);
-        }, 500);
+        }
     };
 
     return (
@@ -229,7 +228,7 @@ export default function ForShopsPage() {
                                     Vielen Dank!
                                 </h3>
                                 <p className="text-lg mb-6" style={{ color: 'var(--warm-gray)' }}>
-                                    Deine E-Mail-App sollte sich geöffnet haben. Sende die Nachricht ab, und wir melden uns schnellstmöglich bei dir.
+                                    Deine Anfrage wurde erfolgreich gesendet. Wir werden uns in Kürze bei dir melden.
                                 </p>
                                 <button
                                     onClick={() => {
@@ -241,6 +240,7 @@ export default function ForShopsPage() {
                                             phone: '',
                                             city: '',
                                             message: '',
+                                            website: '',
                                         });
                                     }}
                                     className="px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 cursor-pointer"
@@ -264,6 +264,16 @@ export default function ForShopsPage() {
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-5">
+                                    {/* Honeypot field - invisible to humans */}
+                                    <input
+                                        type="text"
+                                        name="website"
+                                        value={formData.website}
+                                        onChange={handleChange}
+                                        style={{ display: 'none' }}
+                                        tabIndex={-1}
+                                        autoComplete="off"
+                                    />
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div>
                                             <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)' }}>

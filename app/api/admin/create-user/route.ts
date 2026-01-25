@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         // Use regular client to check authorization
         const supabase = await createClient();
 
-        // Check if the requesting user is a superadmin
+        // Check if the requesting user is authenticated
         const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (userError || !user) {
@@ -26,14 +26,10 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check user's role
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
+        // Check user is a superadmin using the is_superadmin() RPC for consistency
+        const { data: isSuperadmin, error: rpcError } = await supabase.rpc('is_superadmin');
 
-        if (!profile || profile.role !== 'superadmin') {
+        if (rpcError || !isSuperadmin) {
             return NextResponse.json(
                 { error: 'Only superadmins can create users' },
                 { status: 403 }

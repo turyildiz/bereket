@@ -11,7 +11,7 @@ export default async function Home() {
   // Fetch top 6 premium markets
   const { data: premiumMarkets } = await supabase
     .from('markets')
-    .select('id, slug, name, city, header_url, logo_url, about_text, is_premium')
+    .select('id, slug, name, city, zip_code, header_url, logo_url, about_text, is_premium')
     .eq('is_premium', true)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
@@ -20,7 +20,7 @@ export default async function Home() {
   // Fetch newest markets (6 most recently created)
   const { data: newestMarkets } = await supabase
     .from('markets')
-    .select('id, slug, name, city, header_url, logo_url, about_text, is_premium')
+    .select('id, slug, name, city, zip_code, header_url, logo_url, about_text, is_premium')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(6);

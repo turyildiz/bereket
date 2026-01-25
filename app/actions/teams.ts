@@ -1,7 +1,18 @@
 'use server';
 
+import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
 import { createServiceClient } from '@/utils/supabase/service';
+
+// ============================================================================
+// Zod Schemas
+// ============================================================================
+
+const UserIdSchema = z.string().uuid('Ungültige Benutzer-ID (kein gültiges UUID-Format).');
+
+// ============================================================================
+// Result types
+// ============================================================================
 
 interface ActionResult {
     success: boolean;
@@ -19,9 +30,10 @@ interface ActionResult {
  *   4. Only then perform the privileged update via service_role client
  */
 export async function promoteToAdmin(targetUserId: string): Promise<ActionResult> {
-    // --- Input validation ---
-    if (!targetUserId || typeof targetUserId !== 'string') {
-        return { success: false, error: 'Ungültige Benutzer-ID.' };
+    // --- Input validation with Zod ---
+    const parsed = UserIdSchema.safeParse(targetUserId);
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message };
     }
 
     // --- Step 1: Verify the requester's session ---
@@ -74,8 +86,10 @@ export async function promoteToAdmin(targetUserId: string): Promise<ActionResult
  *   5. Perform the privileged update via service_role client
  */
 export async function demoteAdmin(targetUserId: string): Promise<ActionResult> {
-    if (!targetUserId || typeof targetUserId !== 'string') {
-        return { success: false, error: 'Ungültige Benutzer-ID.' };
+    // --- Input validation with Zod ---
+    const parsed = UserIdSchema.safeParse(targetUserId);
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message };
     }
 
     const authClient = await createClient();
@@ -139,8 +153,10 @@ export async function demoteAdmin(targetUserId: string): Promise<ActionResult> {
  *   5. Perform the privileged delete via service_role client
  */
 export async function deleteUser(targetUserId: string): Promise<ActionResult> {
-    if (!targetUserId || typeof targetUserId !== 'string') {
-        return { success: false, error: 'Ungültige Benutzer-ID.' };
+    // --- Input validation with Zod ---
+    const parsed = UserIdSchema.safeParse(targetUserId);
+    if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0].message };
     }
 
     const authClient = await createClient();

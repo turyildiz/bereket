@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Create Supabase client for database lookups
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServiceClient } from '@/utils/supabase/service';
 
 /**
  * GET handler for Meta WhatsApp Webhook verification handshake
@@ -33,11 +27,8 @@ export async function GET(request: NextRequest) {
  * Meta sends message data to this endpoint when users send messages
  */
 export async function POST(request: NextRequest) {
-    // Create admin client with service role key for secure server-side operations
-    const adminClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Use service_role client to bypass RLS (needed to check all markets including inactive)
+    const supabase = createServiceClient();
 
     // Parse request body with error handling
     let body;

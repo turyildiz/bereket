@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// Create Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createServiceClient } from '@/utils/supabase/service'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -19,6 +13,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Use service_role client to bypass RLS (newsletter_subscribers has no anon write access)
+    const supabase = createServiceClient()
+
     // Find subscriber by token
     const { data: subscriber, error: findError } = await supabase
       .from('newsletter_subscribers')

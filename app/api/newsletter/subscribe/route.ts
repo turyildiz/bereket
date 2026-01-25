@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/utils/supabase/service'
 import { TransactionalEmailsApi, SendSmtpEmail } from '@getbrevo/brevo'
 import crypto from 'crypto'
 
@@ -7,12 +7,6 @@ import crypto from 'crypto'
 const rateLimit = new Map<string, { count: number, lastReset: number }>();
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
 const MAX_REQUESTS = 5; // Max 5 attempts per hour per IP
-
-// Create Supabase admin client for server-side operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 // Helper function to get Brevo API instance
 function getBrevoApiInstance() {
@@ -50,7 +44,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { email } = body
+    const { email, website } = body
+
+    // Honeypot check
+    if (website) {
+      // Return fake success for bots
+      return NextResponse.json(
+        { message: 'Vielen Dank! Bitte überprüfe dein E-Mail-Postfach und bestätige deine Anmeldung.' },
+        { status: 200 }
+      )
+    }
 
     // Validate email
     if (!email || typeof email !== 'string') {
@@ -69,6 +72,9 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim()
+
+    // Use service_role client to bypass RLS (newsletter_subscribers has no anon write access)
+    const supabase = createServiceClient()
 
     // Check if email already exists
     const { data: existingSubscriber, error: checkError } = await supabase

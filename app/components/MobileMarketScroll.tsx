@@ -157,7 +157,7 @@ function MobileMarketCard({ market }: MobileMarketCardProps) {
                             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                         />
                     </svg>
-                    {market.city}
+                    {market.zip_code ? `${market.zip_code} ` : ''}{market.city}
                 </div>
             </div>
         </Link>
