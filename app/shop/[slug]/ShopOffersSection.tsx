@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -320,10 +321,12 @@ export default function ShopOffersSection({ marketId, marketName }: ShopOffersSe
                                 >
                                     {/* Image */}
                                     <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
-                                        <img
+                                        <Image
                                             src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
                                             alt={offer.product_name}
-                                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                                            fill
+                                            sizes="(max-width: 640px) 100vw, 50vw"
+                                            className="object-contain group-hover:scale-105 transition-transform duration-500"
                                         />
                                     </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useFavorites } from '@/hooks/useFavorites';
 
 interface MarketCardWithFavoriteProps {
@@ -88,13 +89,15 @@ export default function MarketCardWithFavorite({
         >
             {/* Image Section */}
             <div className="relative aspect-[4/3] overflow-hidden">
-                <img
+                <Image
                     src={
                         market.header_url ||
                         'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'
                     }
                     alt={market.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-110 transition-transform duration-700"
                 />
 
                 {/* Badges moved to TOP LEFT */}
@@ -151,10 +154,12 @@ export default function MarketCardWithFavorite({
                     style={{ boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)' }}
                 >
                     {market.logo_url ? (
-                        <img
+                        <Image
                             src={market.logo_url}
                             alt=""
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="60px"
+                            className="object-cover"
                         />
                     ) : (
                         <div

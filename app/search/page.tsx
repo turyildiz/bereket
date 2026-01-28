@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/utils/supabase/server';
 import SearchMarketGrid from '@/app/components/SearchMarketGrid';
 
@@ -470,10 +471,12 @@ function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) 
         >
             {/* Image */}
             <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
-                <img
+                <Image
                     src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
                     alt={offer.product_name}
-                    className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-contain transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -487,7 +490,7 @@ function OfferCard({ offer, index }: { offer: OfferWithMarket; index: number }) 
                 {/* Market Logo Badge - Top Left */}
                 <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg" style={{ background: 'white' }}>
                     {marketLogo ? (
-                        <img src={marketLogo} alt={marketName} className="w-6 h-6 rounded-full object-cover" />
+                        <Image src={marketLogo} alt={marketName} width={24} height={24} className="rounded-full object-cover" />
                     ) : (
                         <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
                             {marketName.charAt(0)}

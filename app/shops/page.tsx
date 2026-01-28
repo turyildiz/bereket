@@ -18,19 +18,17 @@ interface Market {
     created_at: string;
 }
 
-// Available cities for dropdown filter
-const CITIES = [
-    'Alle Städte',
-    'Raunheim',
-    'Frankfurt am Main',
-    'München',
-    'Rüsselsheim am Main'
-];
+const INITIAL_DISPLAY = 18;
+const LOAD_MORE = 12;
 
 export default function AllShopsPage() {
     // All markets from database
     const [allMarkets, setAllMarkets] = useState<Market[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Infinite scroll state
+    const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -103,6 +101,43 @@ export default function AllShopsPage() {
 
         return result;
     }, [allMarkets, searchQuery, selectedCity, showPremiumOnly, showNewOnly]);
+
+    // Markets to display (paginated)
+    const displayedMarkets = useMemo(() => {
+        return filteredMarkets.slice(0, displayCount);
+    }, [filteredMarkets, displayCount]);
+
+    const hasMore = displayCount < filteredMarkets.length;
+
+    // Reset display count when filters change
+    useEffect(() => {
+        setDisplayCount(INITIAL_DISPLAY);
+    }, [searchQuery, selectedCity, showPremiumOnly, showNewOnly]);
+
+    // Load more callback
+    const loadMore = useCallback(() => {
+        if (hasMore) {
+            setDisplayCount(prev => prev + LOAD_MORE);
+        }
+    }, [hasMore]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                    loadMore();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [loadMore, hasMore, isLoading]);
 
     // Get unique cities with ZIP codes from actual data for the dropdown
     const availableCities = useMemo(() => {
@@ -422,16 +457,32 @@ export default function AllShopsPage() {
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--saffron)] border-t-transparent"></div>
                     </div>
                 ) : filteredMarkets.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredMarkets.map((market, idx) => (
-                            <MarketCardWithFavorite
-                                key={market.id}
-                                market={market}
-                                index={idx}
-                                variant={market.is_premium ? 'premium' : 'new'}
-                            />
-                        ))}
-                    </div>
+                    <>
+                        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                            {displayedMarkets.map((market, idx) => (
+                                <MarketCardWithFavorite
+                                    key={market.id}
+                                    market={market}
+                                    index={idx < INITIAL_DISPLAY ? idx : 0}
+                                    variant={market.is_premium ? 'premium' : 'new'}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Load More Trigger */}
+                        <div ref={loadMoreRef} className="py-8">
+                            {hasMore && (
+                                <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-[var(--saffron)] border-t-transparent"></div>
+                                </div>
+                            )}
+                            {!hasMore && filteredMarkets.length > INITIAL_DISPLAY && (
+                                <p className="text-center text-sm" style={{ color: 'var(--warm-gray)' }}>
+                                    Alle {filteredMarkets.length} Märkte geladen
+                                </p>
+                            )}
+                        </div>
+                    </>
                 ) : (
                     <div className="text-center py-16">
                         <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'var(--sand)' }}>

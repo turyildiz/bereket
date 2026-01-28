@@ -44,14 +44,31 @@ export async function upsertPendingMessage(
     try {
         console.log('[PendingMessages] Upserting for sender:', senderNumber);
 
-        // Check for ANY existing pending message from this sender (regardless of age)
+        // Check for ANY existing pending message from this sender (regardless of age or processing state)
         const { data: existing, error: fetchError } = await supabase
             .from('pending_messages')
             .select('*')
             .eq('sender_number', senderNumber)
             .eq('market_id', marketId)
-            .eq('is_processing', false)
             .maybeSingle();
+
+        // If message is stuck in processing state for over 5 minutes, reset it
+        if (existing?.is_processing) {
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const lastUpdated = new Date(existing.last_updated_at);
+            if (lastUpdated < fiveMinutesAgo) {
+                console.log('[PendingMessages] Found stuck processing message, resetting...');
+                await supabase
+                    .from('pending_messages')
+                    .update({ is_processing: false })
+                    .eq('id', existing.id);
+                existing.is_processing = false;
+            } else {
+                // Still processing, skip this message
+                console.log('[PendingMessages] Message is currently being processed, skipping...');
+                return { success: true, pendingMessage: existing };
+            }
+        }
 
         if (fetchError) {
             console.error('[PendingMessages] Error fetching existing:', fetchError);
@@ -205,6 +222,33 @@ export async function markAsProcessing(messageId: string): Promise<boolean> {
     } catch (err) {
         console.error('[PendingMessages] Unexpected error:', err);
         return false;
+    }
+}
+
+/**
+ * Get ALL pending messages that are ready to process (15 seconds since last update)
+ * Used by cron job to process messages in bulk
+ */
+export async function getAllReadyPendingMessages(): Promise<{ success: boolean; messages: PendingMessage[]; error?: string }> {
+    try {
+        const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000).toISOString();
+
+        const { data, error } = await supabase
+            .from('pending_messages')
+            .select('*')
+            .lte('last_updated_at', fifteenSecondsAgo)
+            .eq('is_processing', false);
+
+        if (error) {
+            console.error('[PendingMessages] Error fetching all ready messages:', error);
+            return { success: false, messages: [], error: error.message };
+        }
+
+        console.log(`[PendingMessages] Found ${data?.length || 0} messages ready to process`);
+        return { success: true, messages: data || [] };
+    } catch (err) {
+        console.error('[PendingMessages] Unexpected error:', err);
+        return { success: false, messages: [], error: String(err) };
     }
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useFavorites } from '@/hooks/useFavorites';
 
 interface MarketType {
@@ -87,13 +88,15 @@ export default function SearchMarketCard({ market, index }: SearchMarketCardProp
 
             {/* Image */}
             <div className="relative aspect-[16/10] overflow-hidden">
-                <img
+                <Image
                     src={
                         market.header_url ||
                         'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=600'
                     }
                     alt={market.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -120,7 +123,7 @@ export default function SearchMarketCard({ market, index }: SearchMarketCardProp
                         style={{ background: 'white', border: '3px solid white' }}
                     >
                         {market.logo_url ? (
-                            <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
+                            <Image src={market.logo_url} alt="" fill sizes="56px" className="object-cover" />
                         ) : (
                             <div
                                 className="w-full h-full flex items-center justify-center text-xl font-black text-white"

@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { useFavorites } from '@/hooks/useFavorites';
 
@@ -225,9 +226,11 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
                                 {/* Logo Only - Width matches social icons below (3×w-10 + 2×gap-3 = 144px) */}
                                 <div className="mb-6 w-36 mx-auto lg:mx-0">
                                     <div className="rounded-2xl overflow-hidden shadow-xl hover:scale-105 transition-transform duration-300">
-                                        <img
+                                        <Image
                                             src="/bereket-logo.png"
                                             alt="Bereket Market Logo"
+                                            width={144}
+                                            height={144}
                                             className="w-full h-auto"
                                         />
                                     </div>

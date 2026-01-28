@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useFavorites } from '@/hooks/useFavorites';
 
 interface Market {
@@ -80,13 +81,15 @@ function MobileMarketCard({ market }: MobileMarketCardProps) {
             }}
         >
             <div className="relative aspect-[4/3] overflow-hidden">
-                <img
+                <Image
                     src={
                         market.header_url ||
                         'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'
                     }
                     alt={market.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="280px"
+                    className="object-cover"
                 />
 
                 {/* Badge - LEFT side */}
@@ -117,7 +120,7 @@ function MobileMarketCard({ market }: MobileMarketCardProps) {
             <div className="relative p-5 pt-9">
                 <div className="absolute -top-7 left-5 w-[54px] h-[54px] rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white">
                     {market.logo_url ? (
-                        <img src={market.logo_url} alt="" className="w-full h-full object-cover" />
+                        <Image src={market.logo_url} alt="" fill sizes="54px" className="object-cover" />
                     ) : (
                         <div
                             className="w-full h-full flex items-center justify-center text-lg font-bold text-white"

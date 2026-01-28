@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import ShopShareButton from './ShopShareButton';
 import ShopOffersSection from './ShopOffersSection';
 
@@ -81,10 +82,13 @@ export default async function ShopProfile({
         <div className="relative h-[280px] md:h-[320px] lg:h-[380px] w-full rounded-2xl overflow-hidden">
           {/* Background Image */}
           <div className="absolute inset-0">
-            <img
+            <Image
               src={market.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1920'}
               alt={market.name}
-              className="w-full h-full object-cover"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
             />
             {/* Dark-to-transparent gradient at the bottom */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
@@ -147,10 +151,10 @@ export default async function ShopProfile({
                 border: '1px solid rgba(255, 255, 255, 0.5)'
               }}
             >
-              <div className="w-[120px] h-[120px] rounded-full border-4 border-white shadow-xl bg-white overflow-hidden flex items-center justify-center mb-4"
+              <div className="w-[120px] h-[120px] rounded-full border-4 border-white shadow-xl bg-white overflow-hidden flex items-center justify-center mb-4 relative"
                 style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
                 {market.logo_url ? (
-                  <img src={market.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  <Image src={market.logo_url} alt="Logo" fill sizes="120px" className="object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-4xl font-black text-white"
                     style={{ background: 'var(--gradient-warm)', fontFamily: 'var(--font-playfair)' }}>
@@ -381,16 +385,18 @@ export default async function ShopProfile({
                       }}
                     >
                       <div className="relative h-28 overflow-hidden">
-                        <img
+                        <Image
                           src={otherShop.header_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400'}
                           alt={otherShop.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          fill
+                          sizes="200px"
+                          className="object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         {/* Mini logo overlay */}
                         {otherShop.logo_url && (
                           <div className="absolute bottom-2 left-2 w-8 h-8 rounded-full border-2 border-white shadow overflow-hidden">
-                            <img src={otherShop.logo_url} alt="" className="w-full h-full object-cover" />
+                            <Image src={otherShop.logo_url} alt="" fill sizes="32px" className="object-cover" />
                           </div>
                         )}
                       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState, useRef, useCallback, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
@@ -39,7 +40,8 @@ const CATEGORIES = [
     { id: 'Sonstiges', label: 'Sonstiges', icon: '📦' },
 ];
 
-const INITIAL_LOAD = 50; // Load more initially for client-side filtering
+const INITIAL_DISPLAY = 24;
+const LOAD_MORE = 12;
 
 function OffersPageContent() {
     const searchParams = useSearchParams();
@@ -49,6 +51,10 @@ function OffersPageContent() {
     const [allOffers, setAllOffers] = useState<Offer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filterMode, setFilterMode] = useState<'all' | 'favorites'>(showFavoritesOnly ? 'favorites' : 'all');
+
+    // Infinite scroll state
+    const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
 
     // New filter states
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -70,8 +76,7 @@ function OffersPageContent() {
                 .eq('markets.is_active', true)
                 .eq('status', 'live')
                 .gt('expires_at', new Date().toISOString())
-                .order('created_at', { ascending: false })
-                .limit(500); // Get all offers for filtering
+                .order('created_at', { ascending: false });
 
             // Filter by favorites if applicable
             if (filterMode === 'favorites' && hasFavorites && favorites.length > 0) {
@@ -126,6 +131,43 @@ function OffersPageContent() {
 
         return result;
     }, [allOffers, selectedCategory, selectedCity]);
+
+    // Offers to display (paginated)
+    const displayedOffers = useMemo(() => {
+        return filteredOffers.slice(0, displayCount);
+    }, [filteredOffers, displayCount]);
+
+    const hasMore = displayCount < filteredOffers.length;
+
+    // Reset display count when filters change
+    useEffect(() => {
+        setDisplayCount(INITIAL_DISPLAY);
+    }, [selectedCategory, selectedCity, filterMode]);
+
+    // Load more callback
+    const loadMore = useCallback(() => {
+        if (hasMore) {
+            setDisplayCount(prev => prev + LOAD_MORE);
+        }
+    }, [hasMore]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                    loadMore();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [loadMore, hasMore, isLoading]);
 
     // Get category count for display
     const getCategoryCount = (categoryId: string): number => {
@@ -534,99 +576,117 @@ function OffersPageContent() {
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--saffron)] border-t-transparent"></div>
                     </div>
                 ) : filteredOffers.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {filteredOffers.map((offer, idx) => {
-                            const marketData = offer.markets;
-                            const marketName = marketData?.name || 'Lokaler Markt';
-                            const marketLogo = marketData?.logo_url;
-                            const marketLocation = marketData?.zip_code && marketData?.city
-                                ? `${marketData.zip_code} ${marketData.city}`
-                                : marketData?.city || '';
-                            const expiresDate = new Date(offer.expires_at);
-                            const daysLeft = Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    <>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {displayedOffers.map((offer, idx) => {
+                                const marketData = offer.markets;
+                                const marketName = marketData?.name || 'Lokaler Markt';
+                                const marketLogo = marketData?.logo_url;
+                                const marketLocation = marketData?.zip_code && marketData?.city
+                                    ? `${marketData.zip_code} ${marketData.city}`
+                                    : marketData?.city || '';
+                                const expiresDate = new Date(offer.expires_at);
+                                const daysLeft = Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
-                            return (
-                                <Link
-                                    href={marketData ? `/shop/${marketData.slug}` : '#'}
-                                    key={offer.id}
-                                    className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in block"
-                                    style={{
-                                        background: 'white',
-                                        boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)',
-                                        animationDelay: `${Math.min(idx, 17) * 0.03}s`
-                                    }}
-                                >
-                                    {/* Image */}
-                                    <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
-                                        <img
-                                            src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
-                                            alt={offer.product_name}
-                                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                        {/* Expiry Badge */}
-                                        {daysLeft <= 3 && (
-                                            <div
-                                                className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg"
-                                                style={{ background: 'var(--terracotta)', color: 'white' }}
-                                            >
-                                                {daysLeft <= 0 ? 'Läuft heute ab' : `Noch ${daysLeft} Tag${daysLeft > 1 ? 'e' : ''}`}
-                                            </div>
-                                        )}
-                                        {/* Market Logo Badge - Top Left */}
-                                        <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg" style={{ background: 'white' }}>
-                                            {marketLogo ? (
-                                                <img src={marketLogo} alt={marketName} className="w-6 h-6 rounded-full object-cover" />
-                                            ) : (
-                                                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
-                                                    {marketName.charAt(0)}
+                                return (
+                                    <Link
+                                        href={marketData ? `/shop/${marketData.slug}` : '#'}
+                                        key={offer.id}
+                                        className="group relative rounded-3xl overflow-hidden cursor-pointer hover-lift animate-scale-in block"
+                                        style={{
+                                            background: 'white',
+                                            boxShadow: '0 4px 25px rgba(0, 0, 0, 0.08)',
+                                            animationDelay: idx < INITIAL_DISPLAY ? `${Math.min(idx, 17) * 0.03}s` : '0s'
+                                        }}
+                                    >
+                                        {/* Image */}
+                                        <div className="relative aspect-[4/3] overflow-hidden" style={{ background: '#f8f5f0' }}>
+                                            <Image
+                                                src={offer.image_library?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=600'}
+                                                alt={offer.product_name}
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                                className="object-contain group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                            {/* Expiry Badge */}
+                                            {daysLeft <= 3 && (
+                                                <div
+                                                    className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg"
+                                                    style={{ background: 'var(--terracotta)', color: 'white' }}
+                                                >
+                                                    {daysLeft <= 0 ? 'Läuft heute ab' : `Noch ${daysLeft} Tag${daysLeft > 1 ? 'e' : ''}`}
                                                 </div>
                                             )}
-                                            <span className="text-xs font-bold" style={{ color: 'var(--charcoal)' }}>{marketName}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="p-5">
-                                        <h3
-                                            className="font-bold text-lg mb-1"
-                                            style={{
-                                                fontFamily: 'var(--font-playfair)',
-                                                color: 'var(--charcoal)'
-                                            }}
-                                        >
-                                            {offer.product_name}
-                                        </h3>
-
-                                        <p className="text-xs mb-3" style={{ color: 'var(--warm-gray)' }}>
-                                            Gültig bis {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                        </p>
-
-                                        <div
-                                            className="flex items-center justify-between pt-3 border-t"
-                                            style={{ borderColor: 'var(--sand)' }}
-                                        >
-                                            <span
-                                                className="text-2xl font-black"
-                                                style={{ color: 'var(--terracotta)' }}
-                                            >
-                                                {offer.price} €
-                                                {offer.unit && <span className="text-sm font-medium ml-1" style={{ color: 'var(--warm-gray)' }}>/ {offer.unit}</span>}
-                                            </span>
-
-                                            {/* Market Location */}
-                                            <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--warm-gray)' }}>
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                                <span className="font-medium">{marketLocation}</span>
+                                            {/* Market Logo Badge - Top Left */}
+                                            <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-lg" style={{ background: 'white' }}>
+                                                {marketLogo ? (
+                                                    <Image src={marketLogo} alt={marketName} width={24} height={24} className="rounded-full object-cover" />
+                                                ) : (
+                                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-warm)' }}>
+                                                        {marketName.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <span className="text-xs font-bold" style={{ color: 'var(--charcoal)' }}>{marketName}</span>
                                             </div>
                                         </div>
-                                    </div>
-                                </Link>
-                            );
-                        })}
-                    </div>
+
+                                        {/* Content */}
+                                        <div className="p-5">
+                                            <h3
+                                                className="font-bold text-lg mb-1"
+                                                style={{
+                                                    fontFamily: 'var(--font-playfair)',
+                                                    color: 'var(--charcoal)'
+                                                }}
+                                            >
+                                                {offer.product_name}
+                                            </h3>
+
+                                            <p className="text-xs mb-3" style={{ color: 'var(--warm-gray)' }}>
+                                                Gültig bis {expiresDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                            </p>
+
+                                            <div
+                                                className="flex items-center justify-between pt-3 border-t"
+                                                style={{ borderColor: 'var(--sand)' }}
+                                            >
+                                                <span
+                                                    className="text-2xl font-black"
+                                                    style={{ color: 'var(--terracotta)' }}
+                                                >
+                                                    {offer.price} €
+                                                    {offer.unit && <span className="text-sm font-medium ml-1" style={{ color: 'var(--warm-gray)' }}>/ {offer.unit}</span>}
+                                                </span>
+
+                                                {/* Market Location */}
+                                                <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--warm-gray)' }}>
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <span className="font-medium">{marketLocation}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        {/* Load More Trigger */}
+                        <div ref={loadMoreRef} className="py-8">
+                            {hasMore && (
+                                <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-[var(--saffron)] border-t-transparent"></div>
+                                </div>
+                            )}
+                            {!hasMore && filteredOffers.length > INITIAL_DISPLAY && (
+                                <p className="text-center text-sm" style={{ color: 'var(--warm-gray)' }}>
+                                    Alle {filteredOffers.length} Angebote geladen
+                                </p>
+                            )}
+                        </div>
+                    </>
                 ) : (
                     <div className="text-center py-16">
                         <div className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'var(--sand)' }}>

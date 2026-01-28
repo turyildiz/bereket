@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/utils/supabase/server';
 import HeroSearchBar from './components/HeroSearchBar';
 import MarketGridClient from './components/MarketGridClient';
@@ -47,10 +48,13 @@ export default async function Home() {
       <section className="relative min-h-[75vh] md:min-h-[90vh] flex items-center overflow-x-clip">
         {/* Full-Screen Background Image */}
         <div className="absolute inset-0">
-          <img
+          <Image
             src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1920"
             alt="Fresh market produce"
-            className="w-full h-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
           />
           {/* Gradient Overlays */}
           <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(44, 40, 35, 0.85) 0%, rgba(44, 40, 35, 0.4) 50%, rgba(44, 40, 35, 0.7) 100%)' }}></div>
@@ -74,10 +78,13 @@ export default async function Home() {
                   <div className="hidden md:block absolute inset-0 rounded-3xl blur-2xl opacity-40 animate-pulse" style={{ background: 'var(--gradient-warm)' }}></div>
                   {/* Logo */}
                   <div className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-lg md:shadow-2xl hover:scale-105 transition-transform duration-500">
-                    <img
+                    <Image
                       src="/bereket-logo.png"
                       alt="Bereket Market"
+                      width={240}
+                      height={240}
                       className="w-full h-auto"
+                      priority
                     />
                   </div>
                 </div>
@@ -114,11 +121,13 @@ export default async function Home() {
                       href={`/shop/${(heroOffers[0].markets as unknown as { slug: string }).slug}`}
                       className="relative z-10 block bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float cursor-pointer"
                     >
-                      <div className="relative rounded-2xl overflow-hidden mb-4">
-                        <img
+                      <div className="relative rounded-2xl overflow-hidden mb-4 h-40">
+                        <Image
                           src={(heroOffers[0].image_library as unknown as { url: string })?.url || 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400'}
                           alt={heroOffers[0].product_name}
-                          className="w-full h-40 object-cover"
+                          fill
+                          sizes="288px"
+                          className="object-cover"
                         />
                         <div className="absolute top-3 right-3 badge-premium text-xs">Premium</div>
                       </div>
@@ -146,11 +155,15 @@ export default async function Home() {
                         style={{ animationDelay: '1s' }}
                       >
                         <div className="flex items-center gap-3">
-                          <img
-                            src={(heroOffers[1].image_library as unknown as { url: string })?.url || 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100'}
-                            alt={heroOffers[1].product_name}
-                            className="w-14 h-14 rounded-xl object-cover"
-                          />
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
+                            <Image
+                              src={(heroOffers[1].image_library as unknown as { url: string })?.url || 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100'}
+                              alt={heroOffers[1].product_name}
+                              fill
+                              sizes="56px"
+                              className="object-cover"
+                            />
+                          </div>
                           <div>
                             <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>{heroOffers[1].product_name}</p>
                             <div>
@@ -170,11 +183,13 @@ export default async function Home() {
                         className="absolute -top-20 -right-16 block bg-white rounded-2xl shadow-xl p-4 w-64 transform rotate-6 hover:rotate-0 transition-all duration-500 animate-float cursor-pointer z-0 hover:z-20"
                         style={{ animationDelay: '1.5s' }}
                       >
-                        <div className="relative rounded-xl overflow-hidden mb-3">
-                          <img
+                        <div className="relative rounded-xl overflow-hidden mb-3 h-32">
+                          <Image
                             src={(heroOffers[2].image_library as unknown as { url: string })?.url || 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=400'}
                             alt={heroOffers[2].product_name}
-                            className="w-full h-32 object-cover"
+                            fill
+                            sizes="256px"
+                            className="object-cover"
                           />
                           <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm" style={{ background: 'rgba(255,255,255,0.9)', color: 'var(--terracotta)' }}>
                             -25%
@@ -200,11 +215,13 @@ export default async function Home() {
                   /* Fallback Static Cards */
                   <>
                     <div className="bg-white rounded-3xl shadow-2xl p-5 w-72 transform rotate-3 hover:rotate-0 transition-all duration-500 hover:scale-105 animate-float">
-                      <div className="relative rounded-2xl overflow-hidden mb-4">
-                        <img
+                      <div className="relative rounded-2xl overflow-hidden mb-4 h-40">
+                        <Image
                           src="https://images.unsplash.com/photo-1573246123716-6b1782bfc499?auto=format&fit=crop&q=80&w=400"
                           alt="Fresh vegetables"
-                          className="w-full h-40 object-cover"
+                          fill
+                          sizes="288px"
+                          className="object-cover"
                         />
                       </div>
                       <h4 className="font-bold text-lg mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>Bio Gemüse Mix</h4>
@@ -217,11 +234,15 @@ export default async function Home() {
 
                     <div className="absolute -bottom-20 -left-16 bg-white rounded-2xl shadow-xl p-4 w-56 transform -rotate-6 hover:rotate-0 transition-all duration-500 animate-float" style={{ animationDelay: '1s' }}>
                       <div className="flex items-center gap-3">
-                        <img
-                          src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100"
-                          alt="Spices"
-                          className="w-14 h-14 rounded-xl object-cover"
-                        />
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
+                          <Image
+                            src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100"
+                            alt="Spices"
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                        </div>
                         <div>
                           <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>Gewürz Set</p>
                           <p className="text-xl font-black" style={{ color: 'var(--terracotta)' }}>4.99€</p>

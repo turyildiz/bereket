@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getReadyPendingMessage, markAsProcessing, deletePendingMessage } from './pendingMessages';
+import { generateProductImage } from './ai';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -25,19 +26,52 @@ interface ProcessResult {
 
 /**
  * Schedule processing of a pending message after 15 seconds
+ * @deprecated This function is now a no-op. Processing is handled by the cron job at /api/cron/process-messages
  */
 export function scheduleMessageProcessing(
     senderNumber: string,
     marketId: string,
     senderWhatsAppNumber: string
 ): void {
-    console.log(`[Processor] ⏰ Scheduled processing for ${senderNumber} in 16 seconds`);
+    // No-op: Processing is now handled by Vercel cron job
+    // The cron runs every minute and processes all ready messages
+    console.log(`[Processor] 📋 Message queued for ${senderNumber} - cron job will process when ready`);
+}
 
-    // Wait 16 seconds (1 second buffer) to ensure the 15-second check passes
-    setTimeout(async () => {
-        console.log(`[Processor] ⏱️ 16 seconds elapsed, checking if message is ready...`);
-        await processReadyMessage(senderNumber, marketId, senderWhatsAppNumber);
-    }, 16 * 1000); // 16 seconds (15 + 1 buffer)
+/**
+ * Process a pending message directly (called by cron job)
+ * This version takes the pending message object directly instead of querying for it
+ */
+export async function processPendingMessage(
+    pendingMessage: {
+        id: string;
+        sender_number: string;
+        market_id: string;
+        caption: string | null;
+        image_url: string | null;
+    }
+): Promise<ProcessResult> {
+    try {
+        console.log('[Processor] 🎯 Processing message from cron:', {
+            id: pendingMessage.id,
+            caption: pendingMessage.caption,
+            hasImage: !!pendingMessage.image_url
+        });
+
+        // Mark as processing to prevent duplicate processing
+        await markAsProcessing(pendingMessage.id);
+
+        // Process with AI - use sender_number for WhatsApp replies
+        const result = await processWithAI(pendingMessage, pendingMessage.market_id, pendingMessage.sender_number);
+
+        // Delete the pending message after processing
+        await deletePendingMessage(pendingMessage.id);
+
+        return result;
+    } catch (err) {
+        console.error('[Processor] Error processing message:', err);
+        return { success: false, error: String(err) };
+    }
 }
 
 /**
@@ -106,8 +140,11 @@ If VALID, return JSON like this:
     "price": 4.99,
     "unit": "kg or Stück or Bund etc.",
     "description": "An appetizing 1-sentence description of the product in German that makes customers want to buy it. Do NOT include price, validity period, or unit here - just describe the product quality/taste/freshness.",
-    "ai_category": "Category from: Obst & Gemüse, Fleisch & Wurst, Milchprodukte, Backwaren, Getränke, Sonstiges"
+    "ai_category": "Category from: Obst & Gemüse, Fleisch & Wurst, Milchprodukte, Backwaren, Getränke, Sonstiges",
+    "validity_days": 7
 }
+
+Note on validity_days: Extract the validity period from the message if mentioned (e.g., "drei Tage" = 3, "eine Woche" = 7, "zwei Wochen" = 14). If not mentioned, default to 7 days.
 
 If INVALID, return one of the INVALID codes above.`;
 
@@ -265,11 +302,91 @@ Has Image: ${pendingMessage.image_url ? 'Yes' : 'No'}`;
                 imageId = existingImage.id;
                 console.log('[Processor] ♻️ Found existing image in library:', imageId);
             } else {
-                console.log('[Processor] ℹ️ No existing image found for product:', offerData.product_name);
+                // No existing image - generate one via AI
+                console.log('[Processor] 🎨 No existing image found, generating via AI for:', offerData.product_name);
+
+                try {
+                    const generatedImageUrl = await generateProductImage(offerData.product_name);
+
+                    if (generatedImageUrl) {
+                        console.log('[Processor] ✅ AI image generated, uploading to storage...');
+
+                        // Convert base64 data URL to buffer
+                        let imageBuffer: ArrayBuffer;
+                        let contentType = 'image/png';
+
+                        if (generatedImageUrl.startsWith('data:')) {
+                            // Parse base64 data URL
+                            const matches = generatedImageUrl.match(/^data:([^;]+);base64,(.+)$/);
+                            if (matches) {
+                                contentType = matches[1];
+                                const base64Data = matches[2];
+                                const binaryString = atob(base64Data);
+                                const bytes = new Uint8Array(binaryString.length);
+                                for (let i = 0; i < binaryString.length; i++) {
+                                    bytes[i] = binaryString.charCodeAt(i);
+                                }
+                                imageBuffer = bytes.buffer;
+                            } else {
+                                throw new Error('Invalid base64 data URL format');
+                            }
+                        } else {
+                            // Regular URL - fetch it
+                            const response = await fetch(generatedImageUrl);
+                            imageBuffer = await response.arrayBuffer();
+                        }
+
+                        const extension = contentType.includes('png') ? 'png' : 'jpg';
+                        const filename = `ai-generated-${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+
+                        // Upload to Supabase storage
+                        const { error: uploadError } = await supabase
+                            .storage
+                            .from('offer-images')
+                            .upload(filename, imageBuffer, {
+                                contentType,
+                                upsert: false
+                            });
+
+                        if (!uploadError) {
+                            // Get public URL
+                            const { data: urlData } = supabase
+                                .storage
+                                .from('offer-images')
+                                .getPublicUrl(filename);
+
+                            // Save to image_library
+                            const { data: libraryEntry, error: libraryError } = await supabase
+                                .from('image_library')
+                                .insert({
+                                    url: urlData.publicUrl,
+                                    product_name: offerData.product_name
+                                })
+                                .select('id')
+                                .single();
+
+                            if (!libraryError && libraryEntry) {
+                                imageId = libraryEntry.id;
+                                console.log('[Processor] ✅ AI image uploaded and saved to library:', imageId);
+                            } else {
+                                console.error('[Processor] Error saving AI image to library:', libraryError);
+                            }
+                        } else {
+                            console.error('[Processor] Error uploading AI image:', uploadError);
+                        }
+                    } else {
+                        console.log('[Processor] ⚠️ AI image generation returned null');
+                    }
+                } catch (genError) {
+                    console.error('[Processor] Error generating AI image:', genError);
+                }
             }
         }
 
         // Create offer in database
+        const validityDays = offerData.validity_days || 7; // Default to 7 days if not specified
+        console.log('[Processor] 📅 Validity period:', validityDays, 'days');
+
         const { data: offer, error } = await supabase
             .from('offers')
             .insert({
@@ -281,7 +398,7 @@ Has Image: ${pendingMessage.image_url ? 'Yes' : 'No'}`;
                 ai_category: offerData.ai_category || null,
                 image_id: imageId,
                 status: 'draft',
-                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+                expires_at: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000).toISOString()
             })
             .select()
             .single();
