@@ -44,13 +44,13 @@ export default function AGB() {
                             className="text-4xl sm:text-5xl font-black text-white mb-6 animate-fade-in-up leading-tight"
                             style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
                         >
-                            Allgemeine Geschäftsbedingungen
+                            Allgemeine Nutzungsbedingungen
                         </h1>
                         <p
                             className="text-lg text-white/70 max-w-2xl mx-auto animate-fade-in-up"
                             style={{ animationDelay: '0.2s' }}
                         >
-                            Rechtliche Rahmenbedingungen für die Nutzung von Bereket Market.
+                            Bedingungen für die Teilnahme am Pilotprojekt.
                         </p>
                     </div>
                 </div>
@@ -74,10 +74,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                1. Geltungsbereich
+                                § 1 Gegenstand des Pilotprojekts
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Diese Allgemeinen Geschäftsbedingungen gelten für alle Geschäftsbeziehungen zwischen Bereket Market und seinen Kunden in der jeweiligen, zum Zeitpunkt des Vertragsschlusses aktuellen Fassung.
+                                Bereket Market ist ein lokales Verzeichnis für Geschäfte in Rüsselsheim. Während der aktuellen Pilotphase dient die Plattform der Marktforschung und technischen Erprobung.
                             </p>
                         </div>
 
@@ -86,10 +86,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                2. Vertragsgegenstand
+                                § 2 Kostenlose Nutzung (Alpha-Partner)
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Bereket Market betreibt eine Online-Plattform, über die lokale Geschäfte ihre Angebote präsentieren können. Kunden können diese Angebote einsehen und mit den Geschäften in Kontakt treten. Ein Kaufvertrag kommt ausschließlich zwischen dem Kunden und dem jeweiligen Geschäft zustande.
+                                Die Teilnahme für Shop-Betreiber ist während der ersten drei Monate (Testphase) vollständig kostenlos. Es fallen keine Einrichtungs- oder Grundgebühren an.
                             </p>
                         </div>
 
@@ -98,10 +98,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                3. Nutzung der Plattform
+                                § 3 Kein Abonnement-Zwang
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Die Nutzung der Plattform ist für Kunden grundsätzlich kostenlos. Shops können kostenpflichtige Zusatzleistungen buchen. Wir bemühen uns um eine ständige Verfügbarkeit der Plattform, können diese jedoch nicht garantieren.
+                                Die kostenlose Testphase endet automatisch nach Ablauf von drei Monaten. Es erfolgt <strong>keine</strong> automatische Umwandlung in ein kostenpflichtiges Vertragsverhältnis. Eine weitere Nutzung nach der Testphase ist nur nach ausdrücklicher, separater Vereinbarung möglich.
                             </p>
                         </div>
 
@@ -110,28 +110,22 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                4. Haftung
+                                § 4 Verantwortlichkeit für Inhalte
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Für die Inhalte der Angebote sind ausschließlich die jeweiligen Shops verantwortlich. Bereket Market übernimmt keine Gewähr für die Richtigkeit, Vollständigkeit und Aktualität der bereitgestellten Informationen.
-                            </p>
-                        </div>
-
-                        <div className="mb-10">
-                            <h2
-                                className="text-2xl font-bold mb-4"
-                                style={{ fontFamily: 'var(--font-playfair)' }}
-                            >
-                                5. Schlussbestimmungen
-                            </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Es gilt das Recht der Bundesrepublik Deutschland. Gerichtsstand ist Frankfurt am Main, soweit der Kunde Kaufmann ist.
+                                Shop-Betreiber sind für die Richtigkeit der von ihnen bereitgestellten Informationen und Angebote selbst verantwortlich. Bereket Market übernimmt keine Gewähr für die Richtigkeit der Shop-Daten.
                             </p>
                         </div>
 
                         <div className="pt-8 border-t border-[var(--sand)]">
-                            <p className="leading-relaxed text-sm text-[var(--warm-gray)]">
-                                Dies sind Muster-AGB. Für den produktiven Einsatz müssen diese durch rechtssichere Texte ersetzt werden, die auf Ihr spezifisches Geschäftsmodell angepasst sind.
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                § 5 Beendigung
+                            </h2>
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Beide Parteien können die Teilnahme am Pilotprojekt jederzeit ohne Angabe von Gründen und ohne Einhaltung einer Frist beenden.
                             </p>
                         </div>
                     </div>
