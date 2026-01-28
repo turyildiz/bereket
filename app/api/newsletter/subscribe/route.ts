@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     sendSmtpEmail.to = [{ email: normalizedEmail }]
     sendSmtpEmail.sender = {
       name: 'Bereket Market',
-      email: 'turgay@nettmedia.de',
+      email: 'info@bereket.market',
     }
     sendSmtpEmail.subject = 'Bestätige deine Newsletter-Anmeldung'
     sendSmtpEmail.htmlContent = `

@@ -1,5 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/utils/supabase/service';
+import crypto from 'crypto';
+
+/**
+ * Verify Meta webhook signature to ensure request is authentic
+ * @see https://developers.facebook.com/docs/graph-api/webhooks/getting-started#verification-requests
+ */
+function verifyWebhookSignature(rawBody: string, signature: string | null): boolean {
+    if (!signature) {
+        console.error('[Webhook] Missing X-Hub-Signature-256 header');
+        return false;
+    }
+
+    const appSecret = process.env.WHATSAPP_APP_SECRET;
+    if (!appSecret) {
+        console.error('[Webhook] WHATSAPP_APP_SECRET not configured');
+        return false;
+    }
+
+    const expectedSignature = 'sha256=' + crypto
+        .createHmac('sha256', appSecret)
+        .update(rawBody)
+        .digest('hex');
+
+    const isValid = crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+    );
+
+    if (!isValid) {
+        console.error('[Webhook] Invalid signature. Expected:', expectedSignature.substring(0, 20) + '...');
+    }
+
+    return isValid;
+}
 
 /**
  * GET handler for Meta WhatsApp Webhook verification handshake
@@ -27,13 +61,29 @@ export async function GET(request: NextRequest) {
  * Meta sends message data to this endpoint when users send messages
  */
 export async function POST(request: NextRequest) {
+    // Read raw body first for signature verification
+    let rawBody: string;
+    try {
+        rawBody = await request.text();
+    } catch (error) {
+        console.error('[Webhook] Failed to read request body:', error);
+        return new Response('Bad Request', { status: 400 });
+    }
+
+    // Verify webhook signature (security: reject spoofed requests)
+    const signature = request.headers.get('x-hub-signature-256');
+    if (!verifyWebhookSignature(rawBody, signature)) {
+        console.error('[Webhook] Signature verification failed - rejecting request');
+        return new Response('Unauthorized', { status: 401 });
+    }
+
     // Use service_role client to bypass RLS (needed to check all markets including inactive)
     const supabase = createServiceClient();
 
     // Parse request body with error handling
     let body;
     try {
-        body = await request.json();
+        body = JSON.parse(rawBody);
     } catch (error) {
         console.error('JSON parse error:', error);
         return new Response('Invalid JSON', { status: 400 });

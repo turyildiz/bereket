@@ -124,10 +124,11 @@ export async function assessImageQuality(imageUrl: string, productName: string):
 export async function generateProductImage(
     productName: string
 ): Promise<string | null> {
+    console.log('[AI] 🎨 Generating image for product:', productName);
     try {
         // @ts-ignore - OpenRouter-specific parameter for image generation
         const response = await openai.chat.completions.create({
-            model: 'bytedance-seed/seedream-4.5',
+            model: 'google/gemini-2.5-flash-image',
             messages: [
                 {
                     role: 'user',
@@ -145,7 +146,7 @@ export async function generateProductImage(
         const images = message?.images;
 
         if (!images || images.length === 0) {
-            console.log('No images returned from Gemini');
+            console.log('[AI] No images returned from Gemini. Response:', JSON.stringify(message, null, 2));
             return null;
         }
 
