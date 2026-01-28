@@ -77,7 +77,7 @@ export default function AGB() {
                                 § 1 Gegenstand des Pilotprojekts
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Bereket Market ist ein lokales Verzeichnis für Geschäfte in Rüsselsheim. Während der aktuellen Pilotphase dient die Plattform der Marktforschung und technischen Erprobung.
+                                Bereket Market ist ein lokales Verzeichnis für Geschäfte im Rhein-Main-Gebiet. Während der aktuellen Pilotphase dient die Plattform der Marktforschung und technischen Erprobung.
                             </p>
                         </div>
 
