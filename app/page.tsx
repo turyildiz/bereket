@@ -6,6 +6,12 @@ import MarketGridClient from './components/MarketGridClient';
 import MobileMarketScroll from './components/MobileMarketScroll';
 import OffersSection from './components/OffersSection';
 
+export const metadata = {
+  title: "Bereket Market | Frische Angebote von lokalen Märkten",
+  description: "Entdecke täglich neue Angebote von türkischen, iranischen, afghanischen und marokkanischen Shops in deiner Nähe. KI-gestützte Angebotserkennung via WhatsApp.",
+};
+
+
 export default async function Home() {
   const supabase = await createClient();
 
@@ -49,8 +55,8 @@ export default async function Home() {
         {/* Full-Screen Background Image */}
         <div className="absolute inset-0">
           <Image
-            src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1920"
-            alt="Fresh market produce"
+            src="/hero-market.jpg"
+            alt="Bereket Market Interior"
             fill
             priority
             sizes="100vw"

@@ -84,7 +84,7 @@ export default function OffersSection() {
     if (!isLoaded) {
         return (
             <section
-                className="relative py-20 sm:py-28 overflow-hidden grain-texture"
+                className="relative py-20 sm:py-28 overflow-hidden grain-texture min-h-[600px]"
                 style={{ background: 'linear-gradient(180deg, var(--cream) 0%, #F4E4D7 100%)' }}
             >
                 <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -98,7 +98,7 @@ export default function OffersSection() {
 
     return (
         <section
-            className="relative py-20 sm:py-28 overflow-hidden grain-texture"
+            className="relative py-20 sm:py-28 overflow-hidden grain-texture min-h-[600px]"
             style={{ background: 'linear-gradient(180deg, var(--cream) 0%, #F4E4D7 100%)' }}
         >
             {/* Decorative Background */}

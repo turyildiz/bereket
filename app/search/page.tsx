@@ -11,6 +11,8 @@ interface SearchPageProps {
     }>;
 }
 
+import { Metadata } from 'next';
+
 // Market type
 type MarketType = {
     id: string;
@@ -42,6 +44,33 @@ type OfferWithMarket = {
         logo_url: string | null;
     } | null;
 };
+
+export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+    const params = await searchParams;
+    const { city, q } = params;
+    let title = 'Marktsuche | Bereket Market';
+    let description = 'Finde türkische und orientalische Supermärkte in deiner Nähe.';
+
+    if (q && city) {
+        title = `Suchergebnisse für "${q}" in ${city} | Bereket Market`;
+        description = `Finde "${q}" in ${city}. Vergleiche Angebote und Preise bei Bereket Market.`;
+    } else if (q) {
+        title = `Suche: "${q}" | Bereket Market`;
+        description = `Ergebnisse für "${q}". Entdecke Angebote bei lokalen Märkten.`;
+    } else if (city) {
+        title = `Märkte in ${city} | Bereket Market`;
+        description = `Entdecke türkische und orientalische Supermärkte in ${city}.`;
+    }
+
+    return {
+        title,
+        description,
+        openGraph: {
+            title,
+            description,
+        }
+    };
+}
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
     const params = await searchParams;

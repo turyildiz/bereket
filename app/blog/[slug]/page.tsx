@@ -216,23 +216,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                 // General / Welcome CTA
                                 <>
                                     <h3 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-[var(--charcoal)]">
-                                        Wir freuen uns auf dich!
+                                        Finde deinen Markt
                                     </h3>
                                     <div className="bg-gradient-to-br from-[var(--cream)] to-[var(--white)] rounded-2xl p-6 md:p-10 border border-[var(--sand)] shadow-lg text-center">
                                         <p className="text-lg md:text-xl text-[var(--warm-gray)] mb-8 max-w-2xl mx-auto">
-                                            Komm vorbei und entdecke die Vielfalt von Bereket Market.
-                                            Frisch, lokal und mit Herz.
+                                            Entdecke die besten türkischen und orientalischen Supermärkte in deiner Nähe.
+                                            Alle Standorte, Öffnungszeiten und Angebote auf einen Blick.
                                         </p>
                                         <div className="flex flex-col sm:flex-row justify-center gap-4">
                                             <Link
-                                                href="/#location"
+                                                href="/shops"
                                                 className="btn-primary w-full sm:w-auto px-8 py-4 text-lg inline-flex items-center justify-center gap-2 group shadow-xl hover:shadow-2xl transform active:scale-95 transition-all"
                                             >
                                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                                 </svg>
-                                                Anfahrt & Öffnungszeiten
+                                                Alle Märkte anzeigen
                                             </Link>
                                         </div>
                                     </div>

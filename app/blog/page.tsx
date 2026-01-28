@@ -19,7 +19,7 @@ export default function BlogIndexPage() {
                             <span className="text-gradient-spice">Bereket</span> Blog
                         </h1>
                         <p className="text-xl text-[var(--warm-gray)] mb-8 leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                            Aktuelle Neuigkeiten, Rezepte und Geschichten rund um unseren Markt und unsere Produkte.
+                            Aktuelle Neuigkeiten, Rezepte und Geschichten rund um lokale Märkte und authentische Produkte.
                         </p>
                         <div className="w-24 h-1 bg-[var(--saffron)] mx-auto rounded-full animate-scale-in" style={{ animationDelay: '0.2s' }}></div>
                     </div>

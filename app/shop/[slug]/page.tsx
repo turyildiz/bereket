@@ -4,6 +4,35 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ShopShareButton from './ShopShareButton';
 import ShopOffersSection from './ShopOffersSection';
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+
+  const { data: market } = await supabase
+    .from('markets')
+    .select('name, about_text, header_url, city')
+    .eq('slug', slug)
+    .single();
+
+  if (!market) {
+    return {
+      title: 'Markt nicht gefunden',
+    };
+  }
+
+  return {
+    title: `${market.name} in ${market.city} | Bereket Market`,
+    description: market.about_text?.substring(0, 160) || `Entdecke Angebote von ${market.name} in ${market.city} bei Bereket Market.`,
+    openGraph: {
+      title: `${market.name} | Bereket Market`,
+      description: market.about_text?.substring(0, 200),
+      images: market.header_url ? [market.header_url] : [],
+      type: 'website',
+    },
+  };
+}
 
 export default async function ShopProfile({
   params
@@ -60,8 +89,42 @@ export default async function ShopProfile({
     ? `https://www.google.com/maps?q=${market.latitude},${market.longitude}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(market.full_address || `${market.name}, ${market.city}`)}`;
 
+  // Construct JSON-LD for LocalBusiness/Store
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Store',
+    name: market.name,
+    image: market.header_url ? [market.header_url] : [],
+    description: market.about_text || `Besuchen Sie ${market.name} in ${market.city}.`,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: market.street || '',
+      addressLocality: market.city,
+      postalCode: market.zip_code,
+      addressCountry: 'DE'
+    },
+    geo: (market.latitude && market.longitude) ? {
+      '@type': 'GeoCoordinates',
+      latitude: market.latitude,
+      longitude: market.longitude
+    } : undefined,
+    url: `https://bereket.market/shop/${market.slug}`,
+    telephone: market.customer_phone,
+    openingHoursSpecification: openingHours.map((h) => ({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: h.day,
+      opens: h.time !== 'Geschlossen' ? h.time.split(' - ')[0] : undefined,
+      closes: h.time !== 'Geschlossen' ? h.time.split(' - ')[1] : undefined
+    }))
+  };
+
   return (
     <main className="min-h-screen bg-[var(--cream)]">
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ========== BREADCRUMBS (Above Hero) ========== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <nav className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--warm-gray)' }}>

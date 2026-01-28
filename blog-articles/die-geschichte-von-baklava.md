@@ -20,18 +20,9 @@ Eine der fundiertesten Theorien besagt, dass die **Assyrer** bereits im 8. Jahrh
 ### Der griechische Beitrag: Die Erfindung des Phyllo
 Griechische Seeleute und Händler, die entlang der Seidenstraße und der mesopotamischen Handelsrouten reisten, brachten das Rezept schließlich nach Athen. Die Griechen leisteten einen entscheidenden Beitrag zur Evolution des Desserts, der es erst zu dem machte, was es heute ist: Sie entwickelten eine Technik, um den Teig hauchdünn auszurollen. So entstand der **Phyllo-Teig** (griechisch für „Blatt“). Im Gegensatz zu dem eher derben Teig der Assyrer ermöglichte Phyllo eine Textur, die beim Backen extrem knusprig, leicht und fast schwebend wurde.
 
-<div className="my-10 md:my-14 -mx-6 md:-mx-0">
-    <figure className="relative md:rounded-2xl overflow-hidden shadow-xl hover-lift">
-        <img
-            src="/blog/die-geschichte-von-baklava/baklava-detail.jpg"
-            alt="Nahaufnahme der dünnen Teigschichten von frischem Baklava"
-            className="w-full h-auto object-cover"
-        />
-        <figcaption className="absolute bottom-0 bg-black/60 text-white w-full p-3 text-xs md:text-sm text-center backdrop-blur-sm">
-            Meisterhafte Handwerkskunst: Phyllo-Teig ist das Herzstück des modernen Baklava.
-        </figcaption>
-    </figure>
-</div>
+![Nahaufnahme der dünnen Teigschichten von frischem Baklava](/blog/die-geschichte-von-baklava/baklava-detail.jpg)
+
+*Meisterhafte Handwerkskunst: Phyllo-Teig ist das Herzstück des modernen Baklava.*
 
 ---
 
