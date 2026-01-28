@@ -76,64 +76,44 @@ export default function Datenschutz() {
                             >
                                 1. Datenschutz auf einen Blick
                             </h2>
-                            <h3 className="font-bold mb-2 text-lg">Allgemeine Hinweise</h3>
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Der Schutz Ihrer persönlichen Daten ist uns wichtig. Diese Webseite erhebt nur technisch notwendige Daten und verwendet keine Tracking-Cookies oder personalisierte Werbung. Die Datenverarbeitung erfolgt ausschließlich auf Grundlage der gesetzlichen Bestimmungen (DSGVO, TDDDG).
+                            </p>
+                        </div>
+
+                        <div className="mb-10">
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                2. Datenerfassung auf dieser Webseite
+                            </h2>
+
+                            <h3 className="font-bold mb-2 text-lg">Hosting & Analyse</h3>
                             <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
-                                Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie diese Website besuchen. Personenbezogene Daten sind alle Daten, mit denen Sie persönlich identifiziert werden können.
+                                Diese Webseite wird bei Vercel Inc. (USA) gehostet. Beim Besuch werden automatisch technische Daten (IP-Adresse, Browsertyp, Zugriffszeit) in Server-Logfiles gespeichert. Diese Daten sind für den Betrieb der Webseite erforderlich und werden nicht mit anderen Datenquellen zusammengeführt. Vercel nutzt Standard-Vertragsklauseln für den Datentransfer in die USA.
                             </p>
-                            <h3 className="font-bold mb-2 text-lg">Datenerfassung auf dieser Website</h3>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Die Datenverarbeitung auf dieser Website erfolgt durch den Websitebetreiber. Dessen Kontaktdaten können Sie dem Impressum dieser Website entnehmen.
-                            </p>
-                        </div>
 
-                        <div className="mb-10">
-                            <h2
-                                className="text-2xl font-bold mb-4"
-                                style={{ fontFamily: 'var(--font-playfair)' }}
-                            >
-                                2. Hosting
-                            </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Wir hosten die Inhalte unserer Website bei folgendem Anbieter:<br />
-                                [Muster-Hoster]<br />
-                                Musterstraße 123<br />
-                                12345 Musterstadt
+                            <h3 className="font-bold mb-2 text-lg">Kontaktformular</h3>
+                            <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
+                                Für den E-Mail-Versand über unser Kontaktformular nutzen wir den Dienst Resend (USA). Ihre eingegebenen Daten (Name, E-Mail, Nachricht) werden ausschließlich zur Bearbeitung Ihrer Anfrage verwendet und nach Abschluss gelöscht.
                             </p>
-                        </div>
 
-                        <div className="mb-10">
-                            <h2
-                                className="text-2xl font-bold mb-4"
-                                style={{ fontFamily: 'var(--font-playfair)' }}
-                            >
-                                3. Allgemeine Hinweise und Pflichtinformationen
-                            </h2>
-                            <h3 className="font-bold mb-2 text-lg">Datenschutz</h3>
+                            <h3 className="font-bold mb-2 text-lg">E-Mail-Kommunikation</h3>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Die Betreiber dieser Seiten nehmen den Schutz Ihrer persönlichen Daten sehr ernst. Wir behandeln Ihre personenbezogenen Daten vertraulich und entsprechend der gesetzlichen Datenschutzvorschriften sowie dieser Datenschutzerklärung.
-                            </p>
-                        </div>
-
-                        <div className="mb-10">
-                            <h2
-                                className="text-2xl font-bold mb-4"
-                                style={{ fontFamily: 'var(--font-playfair)' }}
-                            >
-                                4. Datenerfassung auf dieser Website
-                            </h2>
-                            <h3 className="font-bold mb-2 text-lg">Cookies</h3>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Unsere Internetseiten verwenden so genannte „Cookies“. Cookies sind kleine Textdateien und richten auf Ihrem Endgerät keinen Schaden an. Sie werden entweder vorübergehend für die Dauer einer Sitzung (Session-Cookies) oder dauerhaft (permanente Cookies) auf Ihrem Endgerät gespeichert.
-                            </p>
-                            <h3 className="font-bold mb-2 text-lg">Server-Log-Dateien</h3>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Der Provider der Seiten erhebt und speichert automatisch Informationen in so genannten Server-Log-Dateien, die Ihr Browser automatisch an uns übermittelt.
+                                Unsere E-Mail-Kommunikation erfolgt über Zoho Mail (EU-Server). Anfragen per E-Mail werden vertraulich behandelt und nach Abschluss der Kommunikation gelöscht.
                             </p>
                         </div>
 
                         <div className="pt-8 border-t border-[var(--sand)]">
-                            <p className="leading-relaxed text-sm text-[var(--warm-gray)]">
-                                Dies ist eine vereinfachte Muster-Datenschutzerklärung. Für den produktiven Einsatz muss diese durch einen rechtssicheren Text ersetzt werden, der an die tatsächlichen Gegebenheiten der Website angepasst ist.
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                3. Ihre Rechte
+                            </h2>
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Sie haben das Recht auf Auskunft, Berichtigung und Löschung Ihrer Daten. Bei Fragen zum Datenschutz kontaktieren Sie uns unter info@bereket.market.
                             </p>
                         </div>
                     </div>

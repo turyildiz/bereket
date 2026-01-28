@@ -74,24 +74,12 @@ export default function Impressum() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                Angaben gemäß § 5 TMG
+                                Angaben gemäß § 5 DDG
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Bereket Market GmbH (Muster)<br />
-                                Musterstraße 123<br />
-                                60311 Frankfurt am Main
-                            </p>
-                        </div>
-
-                        <div className="mb-10">
-                            <h2
-                                className="text-2xl font-bold mb-4"
-                                style={{ fontFamily: 'var(--font-playfair)' }}
-                            >
-                                Vertreten durch
-                            </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Max Mustermann (Geschäftsführer)
+                                Turgay Yildiz<br />
+                                Lahnstrasse 2<br />
+                                65479 Raunheim
                             </p>
                         </div>
 
@@ -103,8 +91,8 @@ export default function Impressum() {
                                 Kontakt
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Telefon: +49 (0) 123 456789<br />
-                                E-Mail: support@bereket.market
+                                Telefon: +49 156 78525429<br />
+                                E-Mail: info@bereket.market
                             </p>
                         </div>
 
@@ -113,25 +101,12 @@ export default function Impressum() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                Registereintrag
+                                Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Eintragung im Handelsregister.<br />
-                                Registergericht: Amtsgericht Frankfurt am Main<br />
-                                Registernummer: HRB 12345
-                            </p>
-                        </div>
-
-                        <div className="mb-10">
-                            <h2
-                                className="text-2xl font-bold mb-4"
-                                style={{ fontFamily: 'var(--font-playfair)' }}
-                            >
-                                Umsatzsteuer-ID
-                            </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:<br />
-                                DE 123 456 789
+                                Turgay Yildiz<br />
+                                Lahnstrasse 2<br />
+                                65479 Raunheim
                             </p>
                         </div>
 
@@ -140,15 +115,10 @@ export default function Impressum() {
                                 className="text-xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                Haftungsausschluss (Disclaimer)
+                                Hinweis zum Status des Projekts
                             </h3>
-                            <h4 className="font-bold mb-2">Haftung für Inhalte</h4>
-                            <p className="leading-relaxed text-sm text-[var(--warm-gray)] mb-4">
-                                Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
-                            </p>
-                            <h4 className="font-bold mb-2">Haftung für Links</h4>
-                            <p className="leading-relaxed text-sm text-[var(--warm-gray)]">
-                                Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Bereket Market wird aktuell als privates Pilotprojekt zur Marktforschung betrieben. Es erfolgt derzeit keine gewerbliche Tätigkeit und keine Erzielung von Einnahmen. Bei erfolgreichem Abschluss der Testphase und Aufnahme eines regulären Geschäftsbetriebs wird eine entsprechende Gewerbeanmeldung vorgenommen.
                             </p>
                         </div>
                     </div>
