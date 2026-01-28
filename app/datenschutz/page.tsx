@@ -155,7 +155,8 @@ export default function Datenschutz() {
                             <p className="leading-relaxed text-[var(--warm-gray)]">
                                 Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Die für uns zuständige Aufsichtsbehörde ist:<br /><br />
                                 Der Hessische Beauftragte für Datenschutz und Informationsfreiheit<br />
-                                Postfach 3163, 65021 Wiesbaden<br />
+                                Postfach 3163<br />
+                                65021 Wiesbaden<br />
                                 <a href="https://datenschutz.hessen.de" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--terracotta)]">https://datenschutz.hessen.de</a>
                             </p>
                         </div>
