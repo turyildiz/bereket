@@ -77,8 +77,10 @@ export default function Datenschutz() {
                                 1. Verantwortlicher
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Verantwortlich für die Datenverarbeitung auf dieser Webseite ist:<br />
-                                Turgay Yildiz, Lahnstrasse 2, 65479 Raunheim<br />
+                                Verantwortlich für die Datenverarbeitung auf dieser Webseite ist:<br /><br />
+                                Turgay Yildiz<br />
+                                Lahnstrasse 2<br />
+                                65479 Raunheim<br /><br />
                                 E-Mail: info@bereket.market<br />
                                 Weitere Angaben finden Sie im <a href="/impressum" className="underline hover:text-[var(--terracotta)]">Impressum</a>.
                             </p>
