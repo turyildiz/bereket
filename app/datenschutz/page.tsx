@@ -74,10 +74,13 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                1. Datenschutz auf einen Blick
+                                1. Verantwortlicher
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Der Schutz Ihrer persönlichen Daten ist uns wichtig. Diese Webseite erhebt nur technisch notwendige Daten und verwendet keine Tracking-Cookies oder personalisierte Werbung. Die Datenverarbeitung erfolgt ausschließlich auf Grundlage der gesetzlichen Bestimmungen (DSGVO, TDDDG).
+                                Verantwortlich für die Datenverarbeitung auf dieser Webseite ist:<br />
+                                Turgay Yildiz, Lahnstrasse 2, 65479 Raunheim<br />
+                                E-Mail: info@bereket.market<br />
+                                Weitere Angaben finden Sie im <a href="/impressum" className="underline hover:text-[var(--terracotta)]">Impressum</a>.
                             </p>
                         </div>
 
@@ -86,22 +89,57 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                2. Datenerfassung auf dieser Webseite
+                                2. Datenschutz auf einen Blick
+                            </h2>
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Der Schutz Ihrer persönlichen Daten ist uns wichtig. Diese Webseite erhebt nur technisch notwendige Daten und verwendet <strong>keine Tracking-Cookies</strong> oder personalisierte Werbung. Die Datenverarbeitung erfolgt ausschließlich auf Grundlage der gesetzlichen Bestimmungen (DSGVO, TDDDG).
+                            </p>
+                        </div>
+
+                        <div className="mb-10">
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                3. Datenerfassung auf dieser Webseite
                             </h2>
 
-                            <h3 className="font-bold mb-2 text-lg">Hosting & Analyse</h3>
+                            <h3 className="font-bold mb-2 text-lg">Hosting (Vercel)</h3>
                             <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
-                                Diese Webseite wird bei Vercel Inc. (USA) gehostet. Beim Besuch werden automatisch technische Daten (IP-Adresse, Browsertyp, Zugriffszeit) in Server-Logfiles gespeichert. Diese Daten sind für den Betrieb der Webseite erforderlich und werden nicht mit anderen Datenquellen zusammengeführt. Vercel nutzt Standard-Vertragsklauseln für den Datentransfer in die USA.
+                                Diese Webseite wird bei Vercel Inc. (USA) gehostet. Beim Besuch werden automatisch technische Daten (IP-Adresse, Browsertyp, Zugriffszeit) in Server-Logfiles gespeichert. <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse am sicheren Betrieb der Webseite). <strong>Speicherdauer:</strong> Server-Logs werden nach 30 Tagen automatisch gelöscht. Vercel nutzt EU-Standard-Vertragsklauseln für den Datentransfer in die USA.
                             </p>
 
-                            <h3 className="font-bold mb-2 text-lg">Kontaktformular</h3>
+                            <h3 className="font-bold mb-2 text-lg">Kontaktformular (Resend)</h3>
                             <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
-                                Für den E-Mail-Versand über unser Kontaktformular nutzen wir den Dienst Resend (USA). Ihre eingegebenen Daten (Name, E-Mail, Nachricht) werden ausschließlich zur Bearbeitung Ihrer Anfrage verwendet und nach Abschluss gelöscht.
+                                Für den E-Mail-Versand über unser Kontaktformular nutzen wir den Dienst Resend (USA). Ihre eingegebenen Daten (Name, E-Mail, Nachricht) werden ausschließlich zur Bearbeitung Ihrer Anfrage verwendet. <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragsanbahnung). <strong>Speicherdauer:</strong> Daten werden nach Abschluss der Anfrage gelöscht, spätestens nach 6 Monaten.
                             </p>
 
-                            <h3 className="font-bold mb-2 text-lg">E-Mail-Kommunikation</h3>
+                            <h3 className="font-bold mb-2 text-lg">E-Mail-Kommunikation (Zoho)</h3>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Unsere E-Mail-Kommunikation erfolgt über Zoho Mail (EU-Server). Anfragen per E-Mail werden vertraulich behandelt und nach Abschluss der Kommunikation gelöscht.
+                                Unsere E-Mail-Kommunikation erfolgt über Zoho Mail (EU-Server). Anfragen per E-Mail werden vertraulich behandelt. <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO. <strong>Speicherdauer:</strong> E-Mails werden nach Abschluss der Kommunikation gelöscht, spätestens nach 12 Monaten.
+                            </p>
+                        </div>
+
+                        <div className="mb-10">
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                4. Ihre Rechte
+                            </h2>
+                            <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
+                                Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:
+                            </p>
+                            <ul className="list-disc list-inside text-[var(--warm-gray)] mb-4 space-y-1">
+                                <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
+                                <li>Recht auf Berichtigung (Art. 16 DSGVO)</li>
+                                <li>Recht auf Löschung (Art. 17 DSGVO)</li>
+                                <li>Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+                                <li>Recht auf Datenübertragbarkeit (Art. 20 DSGVO)</li>
+                                <li>Widerspruchsrecht (Art. 21 DSGVO)</li>
+                            </ul>
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Bei Fragen zum Datenschutz kontaktieren Sie uns unter info@bereket.market.
                             </p>
                         </div>
 
@@ -110,10 +148,13 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                3. Ihre Rechte
+                                5. Beschwerderecht
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Sie haben das Recht auf Auskunft, Berichtigung und Löschung Ihrer Daten. Bei Fragen zum Datenschutz kontaktieren Sie uns unter info@bereket.market.
+                                Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Die für uns zuständige Aufsichtsbehörde ist:<br /><br />
+                                Der Hessische Beauftragte für Datenschutz und Informationsfreiheit<br />
+                                Postfach 3163, 65021 Wiesbaden<br />
+                                <a href="https://datenschutz.hessen.de" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--terracotta)]">https://datenschutz.hessen.de</a>
                             </p>
                         </div>
                     </div>

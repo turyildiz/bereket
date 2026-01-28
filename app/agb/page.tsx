@@ -117,7 +117,7 @@ export default function AGB() {
                             </p>
                         </div>
 
-                        <div className="pt-8 border-t border-[var(--sand)]">
+                        <div className="mb-10">
                             <h2
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
@@ -126,6 +126,30 @@ export default function AGB() {
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
                                 Beide Parteien können die Teilnahme am Pilotprojekt jederzeit ohne Angabe von Gründen und ohne Einhaltung einer Frist beenden.
+                            </p>
+                        </div>
+
+                        <div className="mb-10">
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                § 6 Anwendbares Recht
+                            </h2>
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des UN-Kaufrechts.
+                            </p>
+                        </div>
+
+                        <div className="pt-8 border-t border-[var(--sand)]">
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                § 7 Salvatorische Klausel
+                            </h2>
+                            <p className="leading-relaxed text-[var(--warm-gray)]">
+                                Sollten einzelne Bestimmungen dieser Nutzungsbedingungen unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen davon unberührt.
                             </p>
                         </div>
                     </div>
