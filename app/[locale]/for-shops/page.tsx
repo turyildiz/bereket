@@ -1,11 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 import { submitShopInquiry } from '@/app/actions/submitShopInquiry';
 
 export default function ForShopsPage() {
+    const t = useTranslations('forShops');
+    const tCommon = useTranslations('common');
+
     const [formData, setFormData] = useState({
         shopName: '',
         ownerName: '',
@@ -36,11 +40,11 @@ export default function ForShopsPage() {
                 setIsSubmitted(true);
             } else {
                 console.error('Submission error:', result.error);
-                alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+                alert(t('errorMessage'));
             }
         } catch (error) {
             console.error('Submission error:', error);
-            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            alert(t('errorMessage'));
         } finally {
             setIsSubmitting(false);
         }
@@ -76,7 +80,7 @@ export default function ForShopsPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                 </svg>
                             </span>
-                            <span className="text-sm font-medium">Zurück zur Startseite</span>
+                            <span className="text-sm font-medium">{tCommon('backToHome')}</span>
                         </Link>
                     </div>
 
@@ -93,7 +97,7 @@ export default function ForShopsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                             <span className="text-sm font-semibold" style={{ color: '#E18B55' }}>
-                                Für Shop-Inhaber
+                                {t('badge')}
                             </span>
                         </div>
 
@@ -101,14 +105,14 @@ export default function ForShopsPage() {
                             className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 animate-fade-in-up leading-tight"
                             style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
                         >
-                            Werde Teil von{' '}
-                            <span className="text-gradient-warm">Bereket Market</span>
+                            {t('title')}{' '}
+                            <span className="text-gradient-warm">{tCommon('brandName')}</span>
                         </h1>
                         <p
                             className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto animate-fade-in-up"
                             style={{ animationDelay: '0.2s' }}
                         >
-                            Erreiche tausende Kunden in deiner Region. Wir helfen dir, deinen Shop digital sichtbar zu machen.
+                            {t('subtitle')}
                         </p>
                     </div>
                 </div>
@@ -130,10 +134,10 @@ export default function ForShopsPage() {
                                 className="text-3xl sm:text-4xl font-bold mb-6"
                                 style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
                             >
-                                Warum Bereket Market?
+                                {t('whyTitle')}
                             </h2>
                             <p className="text-lg" style={{ color: 'var(--warm-gray)' }}>
-                                Wir bringen deine Angebote direkt zu hungrigen Kunden in deiner Nähe.
+                                {t('whySubtitle')}
                             </p>
                         </div>
 
@@ -145,8 +149,8 @@ export default function ForShopsPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                         </svg>
                                     ),
-                                    title: 'Mehr Sichtbarkeit',
-                                    description: 'Erreiche neue Kunden, die aktiv nach lokalen Angeboten suchen.',
+                                    title: t('benefit1Title'),
+                                    description: t('benefit1Desc'),
                                 },
                                 {
                                     icon: (
@@ -154,15 +158,15 @@ export default function ForShopsPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     ),
-                                    title: 'Einfache Verwaltung',
-                                    description: 'Wir kümmern uns um alles – du konzentrierst dich auf dein Geschäft.',
+                                    title: t('benefit2Title'),
+                                    description: t('benefit2Desc'),
                                 },
                                 {
                                     icon: (
                                         <span className="text-xl font-black">€</span>
                                     ),
-                                    title: 'Kostenlos starten',
-                                    description: 'Keine versteckten Gebühren. Starte noch heute ohne Risiko.',
+                                    title: t('benefit3Title'),
+                                    description: t('benefit3Desc'),
                                 },
                                 {
                                     icon: (
@@ -170,8 +174,8 @@ export default function ForShopsPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     ),
-                                    title: 'Community-getrieben',
-                                    description: 'Werde Teil einer wachsenden Community von lokalen Händlern.',
+                                    title: t('benefit4Title'),
+                                    description: t('benefit4Desc'),
                                 },
                             ].map((benefit, idx) => (
                                 <div
@@ -225,10 +229,10 @@ export default function ForShopsPage() {
                                     className="text-2xl font-bold mb-3"
                                     style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
                                 >
-                                    Vielen Dank!
+                                    {t('successTitle')}
                                 </h3>
                                 <p className="text-lg mb-6" style={{ color: 'var(--warm-gray)' }}>
-                                    Deine Anfrage wurde erfolgreich gesendet. Wir werden uns in Kürze bei dir melden.
+                                    {t('successMessage')}
                                 </p>
                                 <button
                                     onClick={() => {
@@ -246,7 +250,7 @@ export default function ForShopsPage() {
                                     className="px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 cursor-pointer"
                                     style={{ background: 'var(--gradient-warm)', color: 'white' }}
                                 >
-                                    Neue Anfrage senden
+                                    {t('newInquiry')}
                                 </button>
                             </div>
                         ) : (
@@ -256,10 +260,10 @@ export default function ForShopsPage() {
                                         className="text-2xl font-bold mb-2"
                                         style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
                                     >
-                                        Kontaktiere uns
+                                        {t('formTitle')}
                                     </h3>
                                     <p className="text-sm" style={{ color: 'var(--warm-gray)' }}>
-                                        Fülle das Formular aus und wir melden uns innerhalb von 24 Stunden bei dir.
+                                        {t('formSubtitle')}
                                     </p>
                                 </div>
 
@@ -277,7 +281,7 @@ export default function ForShopsPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div>
                                             <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)' }}>
-                                                Shop-Name *
+                                                {t('shopName')} *
                                             </label>
                                             <input
                                                 type="text"
@@ -285,7 +289,7 @@ export default function ForShopsPage() {
                                                 value={formData.shopName}
                                                 onChange={handleChange}
                                                 required
-                                                placeholder="z.B. Murat's Supermarkt"
+                                                placeholder={t('shopNamePlaceholder')}
                                                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
                                                 style={{
                                                     background: 'var(--cream)',
@@ -296,7 +300,7 @@ export default function ForShopsPage() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)' }}>
-                                                Ihr Name *
+                                                {t('yourName')} *
                                             </label>
                                             <input
                                                 type="text"
@@ -304,7 +308,7 @@ export default function ForShopsPage() {
                                                 value={formData.ownerName}
                                                 onChange={handleChange}
                                                 required
-                                                placeholder="Max Mustermann"
+                                                placeholder={t('yourNamePlaceholder')}
                                                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
                                                 style={{
                                                     background: 'var(--cream)',
@@ -318,7 +322,7 @@ export default function ForShopsPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div>
                                             <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)' }}>
-                                                E-Mail *
+                                                {t('email')} *
                                             </label>
                                             <input
                                                 type="email"
@@ -326,7 +330,7 @@ export default function ForShopsPage() {
                                                 value={formData.email}
                                                 onChange={handleChange}
                                                 required
-                                                placeholder="mail@beispiel.de"
+                                                placeholder={t('emailPlaceholder')}
                                                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
                                                 style={{
                                                     background: 'var(--cream)',
@@ -337,14 +341,14 @@ export default function ForShopsPage() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)' }}>
-                                                Telefon
+                                                {t('phone')}
                                             </label>
                                             <input
                                                 type="tel"
                                                 name="phone"
                                                 value={formData.phone}
                                                 onChange={handleChange}
-                                                placeholder="0170 1234567"
+                                                placeholder={t('phonePlaceholder')}
                                                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
                                                 style={{
                                                     background: 'var(--cream)',
@@ -357,7 +361,7 @@ export default function ForShopsPage() {
 
                                     <div>
                                         <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)' }}>
-                                            Stadt *
+                                            {t('city')} *
                                         </label>
                                         <input
                                             type="text"
@@ -365,7 +369,7 @@ export default function ForShopsPage() {
                                             value={formData.city}
                                             onChange={handleChange}
                                             required
-                                            placeholder="z.B. Frankfurt am Main"
+                                            placeholder={t('cityPlaceholder')}
                                             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
                                             style={{
                                                 background: 'var(--cream)',
@@ -377,14 +381,14 @@ export default function ForShopsPage() {
 
                                     <div>
                                         <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--charcoal)' }}>
-                                            Nachricht
+                                            {t('message')}
                                         </label>
                                         <textarea
                                             name="message"
                                             value={formData.message}
                                             onChange={handleChange}
                                             rows={4}
-                                            placeholder="Erzähl uns von deinem Shop..."
+                                            placeholder={t('messagePlaceholder')}
                                             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all resize-none"
                                             style={{
                                                 background: 'var(--cream)',
@@ -407,13 +411,13 @@ export default function ForShopsPage() {
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                                 </svg>
-                                                Anfrage senden
+                                                {t('submit')}
                                             </>
                                         )}
                                     </button>
 
                                     <p className="text-xs text-center" style={{ color: 'var(--warm-gray)' }}>
-                                        Mit dem Absenden stimmst du unserer Datenschutzerklärung zu.
+                                        {t('privacyConsent')}
                                     </p>
                                 </form>
                             </>
@@ -434,10 +438,10 @@ export default function ForShopsPage() {
                         className="text-2xl sm:text-3xl font-bold text-white mb-4"
                         style={{ fontFamily: 'var(--font-playfair)' }}
                     >
-                        Du hast Fragen?
+                        {t('questionsTitle')}
                     </h3>
                     <p className="text-white/70 mb-6 max-w-xl mx-auto">
-                        Schreib uns direkt eine E-Mail und wir helfen dir gerne weiter.
+                        {t('questionsText')}
                     </p>
                     <a
                         href="mailto:info@bereket.market"
