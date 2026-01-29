@@ -1,18 +1,34 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { createClient } from '@/utils/supabase/server';
-import HeroSearchBar from './components/HeroSearchBar';
-import MarketGridClient from './components/MarketGridClient';
-import MobileMarketScroll from './components/MobileMarketScroll';
-import OffersSection from './components/OffersSection';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import HeroSearchBar from '../components/HeroSearchBar';
+import MarketGridClient from '../components/MarketGridClient';
+import MobileMarketScroll from '../components/MobileMarketScroll';
+import OffersSection from '../components/OffersSection';
 
-export const metadata = {
-  title: "Bereket Market | Frische Angebote von lokalen Märkten",
-  description: "Entdecke täglich neue Angebote von türkischen, iranischen, afghanischen und marokkanischen Shops in deiner Nähe. KI-gestützte Angebotserkennung via WhatsApp.",
+type Props = {
+  params: Promise<{ locale: string }>;
 };
 
+export async function generateMetadata({ params }: Props) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'metadata' });
 
-export default async function Home() {
+  return {
+    title: t('title'),
+    description: t('description'),
+    keywords: t('keywords'),
+  };
+}
+
+export default async function Home({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const t = await getTranslations('home');
+  const tCommon = await getTranslations('common');
+
   const supabase = await createClient();
 
   // Fetch top 6 premium markets
@@ -101,13 +117,13 @@ export default async function Home() {
                     className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] animate-fade-in-up text-white text-center md:text-left"
                     style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
                   >
-                    Entdecke die
+                    {t('heroTitle1')}
                     <br />
                     <span className="relative inline-block">
-                      <span className="text-gradient-warm">besten Deals</span>
+                      <span className="text-gradient-warm">{t('heroTitle2')}</span>
                     </span>
                     <br />
-                    deiner Stadt
+                    {t('heroTitle3')}
                   </h1>
                 </div>
               </div>
@@ -135,7 +151,7 @@ export default async function Home() {
                           sizes="288px"
                           className="object-cover"
                         />
-                        <div className="absolute top-3 right-3 badge-premium text-xs">Premium</div>
+                        <div className="absolute top-3 right-3 badge-premium text-xs">{tCommon('premium')}</div>
                       </div>
                       <h4 className="font-bold text-lg mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>
                         {heroOffers[0].product_name}
@@ -149,7 +165,7 @@ export default async function Home() {
                           {/* @ts-ignore - unit might be missing in type but fetched in query */}
                           {heroOffers[0].unit && <span className="text-sm font-medium ml-1" style={{ color: 'var(--warm-gray)' }}>/ {heroOffers[0].unit}</span>}
                         </div>
-                        <span className="text-xs px-3 py-1.5 rounded-full font-bold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>Angebot</span>
+                        <span className="text-xs px-3 py-1.5 rounded-full font-bold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>{tCommon('offer')}</span>
                       </div>
                     </Link>
 
@@ -230,8 +246,8 @@ export default async function Home() {
                           className="object-cover"
                         />
                       </div>
-                      <h4 className="font-bold text-lg mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>Bio Gemüse Mix</h4>
-                      <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>Sultan Markt • Frankfurt</p>
+                      <h4 className="font-bold text-lg mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}>{t('fallbackProduct1')}</h4>
+                      <p className="text-sm mb-3" style={{ color: 'var(--warm-gray)' }}>{t('fallbackLocation')}</p>
                       <div className="flex items-center justify-between">
                         <span className="text-2xl font-black" style={{ color: 'var(--terracotta)' }}>3.99€</span>
                         <span className="text-xs px-3 py-1.5 rounded-full font-bold" style={{ background: 'var(--mint)', color: 'var(--cardamom)' }}>-40%</span>
@@ -250,7 +266,7 @@ export default async function Home() {
                           />
                         </div>
                         <div>
-                          <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>Gewürz Set</p>
+                          <p className="font-bold text-sm" style={{ color: 'var(--charcoal)' }}>{t('fallbackProduct2')}</p>
                           <p className="text-xl font-black" style={{ color: 'var(--terracotta)' }}>4.99€</p>
                         </div>
                       </div>
@@ -281,16 +297,16 @@ export default async function Home() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
-                <span className="text-sm font-bold">Handverlesen</span>
+                <span className="text-sm font-bold">{t('handpicked')}</span>
               </div>
               <h2
                 className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
                 style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
               >
-                Empfohlene Shops
+                {t('featuredShops')}
               </h2>
               <p className="text-lg sm:text-xl" style={{ color: 'var(--warm-gray)' }}>
-                Die beliebtesten Märkte in deiner Region.
+                {t('featuredShopsDesc')}
               </p>
             </div>
             <Link
@@ -298,7 +314,7 @@ export default async function Home() {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:gap-4 cursor-pointer"
               style={{ background: 'var(--charcoal)', color: 'white' }}
             >
-              Alle ansehen
+              {tCommon('viewAll')}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
@@ -323,16 +339,16 @@ export default async function Home() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                <span className="text-sm font-bold">Frisch dabei</span>
+                <span className="text-sm font-bold">{t('freshlyJoined')}</span>
               </div>
               <h2
                 className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
                 style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
               >
-                Neu Dabei
+                {t('newlyJoined')}
               </h2>
               <p className="text-lg sm:text-xl" style={{ color: 'var(--warm-gray)' }}>
-                Entdecke die neuesten Märkte in deiner Community.
+                {t('newlyJoinedDesc')}
               </p>
             </div>
             <Link
@@ -340,7 +356,7 @@ export default async function Home() {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:gap-4 cursor-pointer"
               style={{ background: 'var(--charcoal)', color: 'white' }}
             >
-              Alle ansehen
+              {tCommon('viewAll')}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
