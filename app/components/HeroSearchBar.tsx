@@ -3,9 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { searchPLZ, type PLZEntry } from '@/lib/plz-data';
+import { useTranslations } from 'next-intl';
 
 export default function HeroSearchBar() {
     const router = useRouter();
+    const t = useTranslations('home');
+    const tCommon = useTranslations('common');
 
     // Two simple fields
     const [searchQuery, setSearchQuery] = useState(''); // What are you looking for?
@@ -144,7 +147,7 @@ export default function HeroSearchBar() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Shops oder Produkte suchen..."
+                                placeholder={t('searchPlaceholder')}
                                 className="w-full pl-12 pr-4 py-4 rounded-2xl text-base font-medium transition-all duration-300 focus:outline-none focus:ring-2"
                                 style={{
                                     background: 'var(--cream)',
@@ -176,7 +179,7 @@ export default function HeroSearchBar() {
                                 onChange={handleLocationChange}
                                 onKeyDown={handleKeyDown}
                                 onFocus={() => locationSuggestions.length > 0 && setShowLocationDropdown(true)}
-                                placeholder="PLZ oder Stadt..."
+                                placeholder={t('locationPlaceholder')}
                                 className="w-full pl-12 pr-10 py-4 rounded-2xl text-base font-medium transition-all duration-300 focus:outline-none focus:ring-2"
                                 style={{
                                     background: 'var(--cream)',
@@ -255,7 +258,7 @@ export default function HeroSearchBar() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        <span>Suchen</span>
+                        <span>{tCommon('search')}</span>
                     </button>
                 </div>
             </div>
@@ -266,7 +269,7 @@ export default function HeroSearchBar() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Suche nach Shops wie "Yildiz Market" oder Produkten wie "Baklava"
+                    {t('searchHint')}
                 </span>
             </div>
         </div>

@@ -1,8 +1,12 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function Impressum() {
+    const t = useTranslations('impressum');
+    const tCommon = useTranslations('common');
+
     return (
         <main className="min-h-screen" style={{ background: 'var(--cream)' }}>
             {/* Hero Section */}
@@ -33,7 +37,7 @@ export default function Impressum() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                         </span>
-                        <span className="text-sm font-medium">Zurück zur Startseite</span>
+                        <span className="text-sm font-medium">{tCommon('backToHome')}</span>
                     </Link>
                 </div>
 
@@ -44,13 +48,13 @@ export default function Impressum() {
                             className="text-4xl sm:text-5xl font-black text-white mb-6 animate-fade-in-up leading-tight"
                             style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
                         >
-                            Impressum
+                            {t('title')}
                         </h1>
                         <p
                             className="text-lg text-white/70 max-w-2xl mx-auto animate-fade-in-up"
                             style={{ animationDelay: '0.2s' }}
                         >
-                            Rechtliche Informationen zu Bereket Market.
+                            {t('subtitle')}
                         </p>
                     </div>
                 </div>
@@ -74,13 +78,9 @@ export default function Impressum() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                Angaben gemäß § 5 DDG
+                                {t('section1Title')}
                             </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Turgay Yildiz<br />
-                                Lahnstrasse 2<br />
-                                65479 Raunheim
-                            </p>
+                            <p className="leading-relaxed text-[var(--warm-gray)]" dangerouslySetInnerHTML={{ __html: t('section1Text') }} />
                         </div>
 
                         <div className="mb-10">
@@ -88,12 +88,9 @@ export default function Impressum() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                Kontakt
+                                {t('section2Title')}
                             </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Telefon: +49 156 78525429<br />
-                                E-Mail: info@bereket.market
-                            </p>
+                            <p className="leading-relaxed text-[var(--warm-gray)]" dangerouslySetInnerHTML={{ __html: t('section2Text') }} />
                         </div>
 
                         <div className="mb-10">
@@ -101,13 +98,9 @@ export default function Impressum() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
+                                {t('section3Title')}
                             </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Turgay Yildiz<br />
-                                Lahnstrasse 2<br />
-                                65479 Raunheim
-                            </p>
+                            <p className="leading-relaxed text-[var(--warm-gray)]" dangerouslySetInnerHTML={{ __html: t('section3Text') }} />
                         </div>
 
                         <div className="pt-8 border-t border-[var(--sand)]">
@@ -115,10 +108,10 @@ export default function Impressum() {
                                 className="text-xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                Hinweis zum Status des Projekts
+                                {t('section4Title')}
                             </h3>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Bereket Market wird aktuell als privates Pilotprojekt zur Marktforschung betrieben. Es erfolgt derzeit keine gewerbliche Tätigkeit und keine Erzielung von Einnahmen. Bei erfolgreichem Abschluss der Testphase und Aufnahme eines regulären Geschäftsbetriebs wird eine entsprechende Gewerbeanmeldung vorgenommen.
+                                {t('section4Text')}
                             </p>
                         </div>
                     </div>

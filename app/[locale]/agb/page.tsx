@@ -1,8 +1,12 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function AGB() {
+    const t = useTranslations('agb');
+    const tCommon = useTranslations('common');
+
     return (
         <main className="min-h-screen" style={{ background: 'var(--cream)' }}>
             {/* Hero Section */}
@@ -33,7 +37,7 @@ export default function AGB() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                         </span>
-                        <span className="text-sm font-medium">Zurück zur Startseite</span>
+                        <span className="text-sm font-medium">{tCommon('backToHome')}</span>
                     </Link>
                 </div>
 
@@ -44,13 +48,13 @@ export default function AGB() {
                             className="text-4xl sm:text-5xl font-black text-white mb-6 animate-fade-in-up leading-tight"
                             style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
                         >
-                            Allgemeine Nutzungsbedingungen
+                            {t('title')}
                         </h1>
                         <p
                             className="text-lg text-white/70 max-w-2xl mx-auto animate-fade-in-up"
                             style={{ animationDelay: '0.2s' }}
                         >
-                            Bedingungen für die Teilnahme am Pilotprojekt.
+                            {t('subtitle')}
                         </p>
                     </div>
                 </div>
@@ -74,10 +78,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                § 1 Gegenstand des Pilotprojekts
+                                {t('section1Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Bereket Market ist ein lokales Verzeichnis für Geschäfte im Rhein-Main-Gebiet. Während der aktuellen Pilotphase dient die Plattform der Marktforschung und technischen Erprobung.
+                                {t('section1Text')}
                             </p>
                         </div>
 
@@ -86,10 +90,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                § 2 Kostenlose Nutzung (Alpha-Partner)
+                                {t('section2Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Die Teilnahme für Shop-Betreiber ist während der ersten drei Monate (Testphase) vollständig kostenlos. Es fallen keine Einrichtungs- oder Grundgebühren an.
+                                {t('section2Text')}
                             </p>
                         </div>
 
@@ -98,10 +102,20 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                § 3 Kein Abonnement-Zwang
+                                {t('section3Title')}
+                            </h2>
+                            <p className="leading-relaxed text-[var(--warm-gray)]" dangerouslySetInnerHTML={{ __html: t('section3Text') }} />
+                        </div>
+
+                        <div className="mb-10">
+                            <h2
+                                className="text-2xl font-bold mb-4"
+                                style={{ fontFamily: 'var(--font-playfair)' }}
+                            >
+                                {t('section4Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Die kostenlose Testphase endet automatisch nach Ablauf von drei Monaten. Es erfolgt <strong>keine</strong> automatische Umwandlung in ein kostenpflichtiges Vertragsverhältnis. Eine weitere Nutzung nach der Testphase ist nur nach ausdrücklicher, separater Vereinbarung möglich.
+                                {t('section4Text')}
                             </p>
                         </div>
 
@@ -110,10 +124,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                § 4 Verantwortlichkeit für Inhalte
+                                {t('section5Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Shop-Betreiber sind für die Richtigkeit der von ihnen bereitgestellten Informationen und Angebote selbst verantwortlich. Bereket Market übernimmt keine Gewähr für die Richtigkeit der Shop-Daten.
+                                {t('section5Text')}
                             </p>
                         </div>
 
@@ -122,22 +136,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                § 5 Beendigung
+                                {t('section6Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Beide Parteien können die Teilnahme am Pilotprojekt jederzeit ohne Angabe von Gründen und ohne Einhaltung einer Frist beenden.
-                            </p>
-                        </div>
-
-                        <div className="mb-10">
-                            <h2
-                                className="text-2xl font-bold mb-4"
-                                style={{ fontFamily: 'var(--font-playfair)' }}
-                            >
-                                § 6 Anwendbares Recht
-                            </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des UN-Kaufrechts.
+                                {t('section6Text')}
                             </p>
                         </div>
 
@@ -146,10 +148,10 @@ export default function AGB() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                § 7 Salvatorische Klausel
+                                {t('section7Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Sollten einzelne Bestimmungen dieser Nutzungsbedingungen unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen davon unberührt.
+                                {t('section7Text')}
                             </p>
                         </div>
                     </div>

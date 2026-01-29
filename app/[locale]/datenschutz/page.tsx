@@ -1,8 +1,12 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function Datenschutz() {
+    const t = useTranslations('datenschutz');
+    const tCommon = useTranslations('common');
+
     return (
         <main className="min-h-screen" style={{ background: 'var(--cream)' }}>
             {/* Hero Section */}
@@ -33,7 +37,7 @@ export default function Datenschutz() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                         </span>
-                        <span className="text-sm font-medium">Zurück zur Startseite</span>
+                        <span className="text-sm font-medium">{tCommon('backToHome')}</span>
                     </Link>
                 </div>
 
@@ -44,13 +48,13 @@ export default function Datenschutz() {
                             className="text-4xl sm:text-5xl font-black text-white mb-6 animate-fade-in-up leading-tight"
                             style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
                         >
-                            Datenschutzerklärung
+                            {t('title')}
                         </h1>
                         <p
                             className="text-lg text-white/70 max-w-2xl mx-auto animate-fade-in-up"
                             style={{ animationDelay: '0.2s' }}
                         >
-                            Informationen zum Schutz Ihrer persönlichen Daten.
+                            {t('subtitle')}
                         </p>
                     </div>
                 </div>
@@ -74,15 +78,11 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                1. Verantwortlicher
+                                {t('section1Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Verantwortlich für die Datenverarbeitung auf dieser Webseite ist:<br /><br />
-                                Turgay Yildiz<br />
-                                Lahnstrasse 2<br />
-                                65479 Raunheim<br /><br />
-                                E-Mail: info@bereket.market<br />
-                                Weitere Angaben finden Sie im <a href="/impressum" className="underline hover:text-[var(--terracotta)]">Impressum</a>.
+                                {t('section1Text')}<br /><br />
+                                <span dangerouslySetInnerHTML={{ __html: t('section1Contact') }} />
                             </p>
                         </div>
 
@@ -91,11 +91,9 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                2. Datenschutz auf einen Blick
+                                {t('section2Title')}
                             </h2>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Der Schutz Ihrer persönlichen Daten ist uns wichtig. Diese Webseite erhebt nur technisch notwendige Daten und verwendet <strong>keine Tracking-Cookies</strong> oder personalisierte Werbung. Die Datenverarbeitung erfolgt ausschließlich auf Grundlage der gesetzlichen Bestimmungen (DSGVO, TDDDG).
-                            </p>
+                            <p className="leading-relaxed text-[var(--warm-gray)]" dangerouslySetInnerHTML={{ __html: t('section2Text') }} />
                         </div>
 
                         <div className="mb-10">
@@ -103,23 +101,17 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                3. Datenerfassung auf dieser Webseite
+                                {t('section3Title')}
                             </h2>
 
-                            <h3 className="font-bold mb-2 text-lg">Hosting (Vercel)</h3>
-                            <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
-                                Diese Webseite wird bei Vercel Inc. (USA) gehostet. Beim Besuch werden automatisch technische Daten (IP-Adresse, Browsertyp, Zugriffszeit) in Server-Logfiles gespeichert. <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse am sicheren Betrieb der Webseite). <strong>Speicherdauer:</strong> Server-Logs werden nach 30 Tagen automatisch gelöscht. Vercel nutzt EU-Standard-Vertragsklauseln für den Datentransfer in die USA.
-                            </p>
+                            <h3 className="font-bold mb-2 text-lg">{t('section3HostingTitle')}</h3>
+                            <p className="leading-relaxed text-[var(--warm-gray)] mb-4" dangerouslySetInnerHTML={{ __html: t('section3HostingText') }} />
 
-                            <h3 className="font-bold mb-2 text-lg">Kontaktformular (Resend)</h3>
-                            <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
-                                Für den E-Mail-Versand über unser Kontaktformular nutzen wir den Dienst Resend (USA). Ihre eingegebenen Daten (Name, E-Mail, Nachricht) werden ausschließlich zur Bearbeitung Ihrer Anfrage verwendet. <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragsanbahnung). <strong>Speicherdauer:</strong> Daten werden nach Abschluss der Anfrage gelöscht, spätestens nach 6 Monaten.
-                            </p>
+                            <h3 className="font-bold mb-2 text-lg">{t('section3ContactTitle')}</h3>
+                            <p className="leading-relaxed text-[var(--warm-gray)] mb-4" dangerouslySetInnerHTML={{ __html: t('section3ContactText') }} />
 
-                            <h3 className="font-bold mb-2 text-lg">E-Mail-Kommunikation (Zoho)</h3>
-                            <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Unsere E-Mail-Kommunikation erfolgt über Zoho Mail (EU-Server). Anfragen per E-Mail werden vertraulich behandelt. <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO. <strong>Speicherdauer:</strong> E-Mails werden nach Abschluss der Kommunikation gelöscht, spätestens nach 12 Monaten.
-                            </p>
+                            <h3 className="font-bold mb-2 text-lg">{t('section3EmailTitle')}</h3>
+                            <p className="leading-relaxed text-[var(--warm-gray)]" dangerouslySetInnerHTML={{ __html: t('section3EmailText') }} />
                         </div>
 
                         <div className="mb-10">
@@ -127,21 +119,18 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                4. Ihre Rechte
+                                {t('section4Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)] mb-4">
-                                Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:
+                                {t('section4Intro')}
                             </p>
                             <ul className="list-disc list-inside text-[var(--warm-gray)] mb-4 space-y-1">
-                                <li>Recht auf Auskunft (Art. 15 DSGVO)</li>
-                                <li>Recht auf Berichtigung (Art. 16 DSGVO)</li>
-                                <li>Recht auf Löschung (Art. 17 DSGVO)</li>
-                                <li>Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
-                                <li>Recht auf Datenübertragbarkeit (Art. 20 DSGVO)</li>
-                                <li>Widerspruchsrecht (Art. 21 DSGVO)</li>
+                                {(t.raw('section4Rights') as string[]).map((right, idx) => (
+                                    <li key={idx}>{right}</li>
+                                ))}
                             </ul>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Bei Fragen zum Datenschutz kontaktieren Sie uns unter info@bereket.market.
+                                {t('section4Contact')}
                             </p>
                         </div>
 
@@ -150,13 +139,11 @@ export default function Datenschutz() {
                                 className="text-2xl font-bold mb-4"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                5. Beschwerderecht
+                                {t('section5Title')}
                             </h2>
                             <p className="leading-relaxed text-[var(--warm-gray)]">
-                                Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Die für uns zuständige Aufsichtsbehörde ist:<br /><br />
-                                Der Hessische Beauftragte für Datenschutz und Informationsfreiheit<br />
-                                Postfach 3163<br />
-                                65021 Wiesbaden<br />
+                                {t('section5Text')}<br /><br />
+                                <span dangerouslySetInnerHTML={{ __html: t('section5Authority') }} /><br />
                                 <a href="https://datenschutz.hessen.de" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--terracotta)]">https://datenschutz.hessen.de</a>
                             </p>
                         </div>

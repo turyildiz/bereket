@@ -1,10 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useFavorites } from '@/hooks/useFavorites';
 import MarketCardWithFavorite from '@/app/components/MarketCardWithFavorite';
+import { useTranslations } from 'next-intl';
 
 interface Market {
     id: string;
@@ -22,6 +23,8 @@ export default function FavoritesPage() {
     const { favorites, isLoaded, hasFavorites } = useFavorites();
     const [markets, setMarkets] = useState<Market[]>([]);
     const [isLoadingMarkets, setIsLoadingMarkets] = useState(true);
+    const t = useTranslations('favorites');
+    const tCommon = useTranslations('common');
 
     // Fetch favorite markets from Supabase
     useEffect(() => {
@@ -90,7 +93,7 @@ export default function FavoritesPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                 </span>
-                                <span className="text-sm font-medium">Zurück zur Startseite</span>
+                                <span className="text-sm font-medium">{tCommon('backToHome')}</span>
                             </Link>
                         </div>
 
@@ -99,10 +102,10 @@ export default function FavoritesPage() {
                                 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-4 animate-fade-in-up leading-tight"
                                 style={{ fontFamily: 'var(--font-playfair)' }}
                             >
-                                <span className="text-gradient-warm">Meine Favoriten</span>
+                                <span className="text-gradient-warm">{t('title')}</span>
                             </h1>
                             <p className="text-lg sm:text-xl text-white/70 max-w-xl animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                                Laden...
+                                {t('loading')}
                             </p>
                         </div>
                     </div>
@@ -153,7 +156,7 @@ export default function FavoritesPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                 </svg>
                             </span>
-                            <span className="text-sm font-medium">Zurück zur Startseite</span>
+                            <span className="text-sm font-medium">{tCommon('backToHome')}</span>
                         </Link>
                     </div>
 
@@ -177,7 +180,7 @@ export default function FavoritesPage() {
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                                     </svg>
                                     <span className="text-sm font-semibold" style={{ color: '#E18B55' }}>
-                                        {markets.length} {markets.length === 1 ? 'Favorit' : 'Favoriten'}
+                                        {t('count', { count: markets.length })}
                                     </span>
                                 </div>
 
@@ -185,15 +188,13 @@ export default function FavoritesPage() {
                                     className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-4 animate-fade-in-up leading-tight"
                                     style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.1s' }}
                                 >
-                                    <span className="text-gradient-warm">Meine Favoriten</span>
+                                    <span className="text-gradient-warm">{t('title')}</span>
                                 </h1>
                                 <p
                                     className="text-lg sm:text-xl text-white/70 max-w-xl animate-fade-in-up"
                                     style={{ animationDelay: '0.2s' }}
                                 >
-                                    {hasFavorites
-                                        ? 'Deine gespeicherten Lieblingsmärkte auf einen Blick.'
-                                        : 'Du hast noch keine Favoriten gespeichert.'}
+                                    {hasFavorites ? t('savedMarkets') : t('noFavorites')}
                                 </p>
                             </div>
                         </div>
@@ -242,11 +243,11 @@ export default function FavoritesPage() {
                             className="text-3xl sm:text-4xl font-black mb-4"
                             style={{ fontFamily: 'var(--font-playfair)', color: 'var(--charcoal)' }}
                         >
-                            Noch keine Favoriten
+                            {t('noFavoritesTitle')}
                         </h2>
 
                         <p className="text-lg mb-8 max-w-md mx-auto" style={{ color: 'var(--warm-gray)' }}>
-                            Klicke auf das Herz-Symbol bei einem Markt, um ihn zu deinen Favoriten hinzuzufügen.
+                            {t('noFavoritesText')}
                         </p>
 
                         <Link
@@ -257,7 +258,7 @@ export default function FavoritesPage() {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
-                            Märkte entdecken
+                            {t('discoverMarkets')}
                         </Link>
                     </div>
                 ) : (
